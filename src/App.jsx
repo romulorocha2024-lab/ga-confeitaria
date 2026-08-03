@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './App.css';
 
 const SUPABASE_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/PRODUCTS';
+const SUPABASE_PEDIDOS_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/ORDERS';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
 
 const headersSupabase = {
@@ -15,14 +16,12 @@ export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const ehAdmin = urlParams.get('admin') === 'geicy';
 
-  const [pedidos, setPedidos] = useState([
-    { id: 1, cliente: 'Maria Silva', telefone: '(11) 98888-7777', itens: '20 Coxinhas, 1 Bolo', status: 'novos', entrega: 'Rua das Flores, 123', valor: 92.00, pagamento: 'Pix', obs: 'Sem cebola' }
-  ]);
-
+  const [pedidos, setPedidos] = useState([]);
   const [produtos, setProdutos] = useState([]);
 
   useEffect(() => {
     carregarProdutos();
+    carregarPedidos();
   }, []);
 
   const carregarProdutos = async () => {
@@ -43,6 +42,20 @@ export default function App() {
       }
     } catch (err) {
       console.error('Erro ao carregar produtos:', err);
+    }
+  };
+
+  const carregarPedidos = async () => {
+    try {
+      const resposta = await fetch(`${SUPABASE_PEDIDOS_URL}?select=*&order=id.desc`, {
+        headers: headersSupabase
+      });
+      const data = await resposta.json();
+      if (Array.isArray(data)) {
+        setPedidos(data);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar pedidos:', err);
     }
   };
 
@@ -162,7 +175,7 @@ export default function App() {
   const calcularTaxa = () => taxasEntrega[bairroSelecionado] || 0;
   const calcularTotalGeralWeb = () => calcularSubtotalWeb() + calcularTaxa();
 
-  const enviarPedidoWhatsApp = (e) => {
+  const enviarPedidoWhatsApp = async (e) => {
     e.preventDefault();
     if (!nomeClienteWeb || carrinhoCliente.length === 0) {
       alert('Preencha seu nome e escolha pelo menos um produto!');
@@ -177,8 +190,7 @@ export default function App() {
     let infoPagamento = pagamentoWeb;
     if (pagamentoWeb === 'Dinheiro' && trocoPara) infoPagamento += ` (Troco para R$ ${trocoPara})`;
 
-    setPedidos([{
-      id: Date.now(),
+    const novoPedidoData = {
       cliente: nomeClienteWeb,
       telefone: telClienteWeb,
       itens: carrinhoCliente.map(i => i.nome).join(', '),
@@ -187,7 +199,18 @@ export default function App() {
       valor: parseFloat(total),
       pagamento: infoPagamento,
       obs: obsClienteWeb
-    }, ...pedidos]);
+    };
+
+    try {
+      await fetch(SUPABASE_PEDIDOS_URL, {
+        method: 'POST',
+        headers: headersSupabase,
+        body: JSON.stringify(novoPedidoData)
+      });
+      carregarPedidos();
+    } catch (err) {
+      console.error('Erro ao salvar pedido no banco:', err);
+    }
 
     const mensagem = `Olá, Geicy! Gostaria de fazer o seguinte pedido:\n\n` +
       `*Cliente:* ${nomeClienteWeb}\n` +
@@ -209,7 +232,7 @@ export default function App() {
     ? produtos 
     : produtos.filter(p => p.categoria && p.categoria.toLowerCase().trim() === filtroCategoriaWeb.toLowerCase().trim());
 
-  const totalVendidoHoje = pedidos.reduce((acc, p) => acc + p.valor, 0);
+  const totalVendidoHoje = pedidos.reduce((acc, p) => acc + Number(p.valor || 0), 0);
 
   return (
     <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#fdf2f4', minHeight: '100vh', padding: '20px', color: '#333' }}>
@@ -298,17 +321,22 @@ export default function App() {
 
             {telaAtual === 'cozinha' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                <h2 style={{ color: '#fd7e14', marginTop: 0 }}>🍳 Cozinha - Controle de Pedidos</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                  <h2 style={{ color: '#fd7e14', margin: 0 }}>🍳 Cozinha - Controle de Pedidos</h2>
+                  <button type="button" onClick={carregarPedidos} style={{ background: '#e9ecef', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>🔄 Atualizar</button>
+                </div>
                 {pedidos.length === 0 ? <p style={{ color: '#888' }}>Nenhum pedido no momento.</p> : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     {pedidos.map(ped => (
                       <div key={ped.id} style={{ background: '#fff9db', border: '1px solid #ffe066', padding: '15px', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                           <strong style={{ fontSize: '16px' }}>{ped.cliente}</strong>
-                          <span style={{ fontSize: '12px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '4px', background: ped.status === 'novos' ? '#ff922b' : '#51cf66', color: 'white' }}>{ped.status.toUpperCase()}</span>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '4px', background: ped.status === 'novos' ? '#ff922b' : '#51cf66', color: 'white' }}>{ped.status ? ped.status.toUpperCase() : 'NOVO'}</span>
                         </div>
                         <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Itens:</strong> {ped.itens}</p>
                         <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Endereço:</strong> {ped.entrega}</p>
+                        <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Pagamento:</strong> {ped.pagamento} | <strong>Valor:</strong> R$ {Number(ped.valor || 0).toFixed(2)}</p>
+                        {ped.obs && <p style={{ margin: '4px 0', fontSize: '13px', color: '#c92a2a' }}><strong>Obs:</strong> {ped.obs}</p>}
                       </div>
                     ))}
                   </div>
