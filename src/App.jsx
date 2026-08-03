@@ -107,7 +107,7 @@ export default function App() {
       } else {
         const res = await fetch(SUPABASE_URL, {
           method: 'POST',
-          headers: headersSupabase,
+          headers: { ...headersSupabase, 'Prefer': 'resolution=merge-duplicates' },
           body: JSON.stringify(dadosProd)
         });
         if (!res.ok) {
@@ -123,7 +123,7 @@ export default function App() {
       setCategoriaProduto('Doces');
       setImagemProduto('');
       carregarProdutos();
-      alert('Produto cadastrado com sucesso!');
+      alert('Produto salvo com sucesso!');
     } catch (err) {
       console.error('Erro na requisição:', err);
       alert('Erro de conexão ao salvar produto.');
