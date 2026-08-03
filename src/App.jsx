@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// Conexão direta via API REST do Supabase (Sem precisar de pacotes externos)
-const SUPABASE_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/products';
+// Conexão direta via API REST do Supabase (Ajustado para colunas em português)
+const SUPABASE_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/produtos';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
 
 const headersSupabase = {
@@ -34,10 +34,10 @@ export default function App() {
       if (Array.isArray(data)) {
         const produtosFormatados = data.map(p => ({
           id: p.id,
-          nome: p.name,
-          preco: Number(p.price),
-          categoria: p.category,
-          imagem: p.image
+          nome: p.nome,
+          preco: Number(p.preco),
+          categoria: p.categoria,
+          imagem: p.imagem
         }));
         setProdutos(produtosFormatados);
       }
@@ -97,7 +97,7 @@ export default function App() {
     if (!nomeProduto || !precoProduto) return;
 
     const novaImg = imagemProduto || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80';
-    const dadosProd = { name: nomeProduto, price: parseFloat(precoProduto), category: categoriaProduto, image: novaImg };
+    const dadosProd = { nome: nomeProduto, preco: parseFloat(precoProduto), categoria: categoriaProduto, imagem: novaImg };
 
     if (editandoId) {
       await fetch(`${SUPABASE_URL}?id=eq.${editandoId}`, {
@@ -192,10 +192,6 @@ export default function App() {
       `*Observações:* ${obsClienteWeb || 'Nenhuma'}`;
 
     window.open(`https://api.whatsapp.com/send?phone=5598985578221&text=${encodeURIComponent(mensagem)}`, '_blank');
-  };
-
-  const mudarStatusPedido = (id, novoStatus) => {
-    setPedidos(pedidos.map(p => p.id === id ? { ...p, status: novoStatus } : p));
   };
 
   const produtosFiltradosWeb = filtroCategoriaWeb === 'Todos' 
