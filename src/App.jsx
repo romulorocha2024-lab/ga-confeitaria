@@ -27,17 +27,17 @@ export default function App() {
 
   const carregarProdutos = async () => {
     try {
-      const resposta = await fetch(`${SUPABASE_URL}?select=*&order=id.asc`, {
+      const resposta = await fetch(`${SUPABASE_URL}?select=*`, {
         headers: headersSupabase
       });
       const data = await resposta.json();
       if (Array.isArray(data)) {
-        const produtosFormatados = data.map(p => ({
-          id: p.id,
+        const produtosFormatados = data.map((p, index) => ({
+          id: p.id || index + 1,
           nome: p.name,
           preco: Number(p.price),
           categoria: p.category,
-          imagem: p.image
+          imagem: p.image || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80'
         }));
         setProdutos(produtosFormatados);
       }
@@ -98,7 +98,7 @@ export default function App() {
 
     try {
       if (editandoId) {
-        await fetch(`${SUPABASE_URL}?id=eq.${editandoId}`, {
+        await fetch(`${SUPABASE_URL}?name=eq.${encodeURIComponent(editandoId)}`, {
           method: 'PATCH',
           headers: headersSupabase,
           body: JSON.stringify(dadosProd)
@@ -131,16 +131,16 @@ export default function App() {
   };
 
   const iniciarEdicaoProduto = (prod) => {
-    setEditandoId(prod.id);
+    setEditandoId(prod.nome);
     setNomeProduto(prod.nome);
     setPrecoProduto(prod.preco);
     setCategoriaProduto(prod.categoria || 'Doces');
     setImagemProduto(prod.imagem);
   };
 
-  const excluirProduto = async (id) => {
+  const excluirProduto = async (nomeProd) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      await fetch(`${SUPABASE_URL}?id=eq.${id}`, {
+      await fetch(`${SUPABASE_URL}?name=eq.${encodeURIComponent(nomeProd)}`, {
         method: 'DELETE',
         headers: headersSupabase
       });
@@ -275,8 +275,8 @@ export default function App() {
                 </form>
 
                 <div style={{ display: 'grid', gap: '12px' }}>
-                  {produtos.map(prod => (
-                    <div key={prod.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px', background: '#fdf2f4', padding: '10px', borderRadius: '8px', borderLeft: '4px solid #d63384' }}>
+                  {produtos.map((prod, index) => (
+                    <div key={index} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '15px', background: '#fdf2f4', padding: '10px', borderRadius: '8px', borderLeft: '4px solid #d63384' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <img src={prod.imagem} alt={prod.nome} style={{ width: '55px', height: '55px', objectFit: 'cover', borderRadius: '6px' }} />
                         <div>
@@ -286,7 +286,7 @@ export default function App() {
                       </div>
                       <div style={{ display: 'flex', gap: '5px' }}>
                         <button type="button" onClick={() => iniciarEdicaoProduto(prod)} style={{ background: '#ffc107', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Editar</button>
-                        <button type="button" onClick={() => excluirProduto(prod.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Excluir</button>
+                        <button type="button" onClick={() => excluirProduto(prod.nome)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Excluir</button>
                       </div>
                     </div>
                   ))}
@@ -344,8 +344,8 @@ export default function App() {
               <p style={{ color: '#888', fontStyle: 'italic', marginBottom: '20px' }}>Nenhum produto cadastrado nesta categoria ainda.</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '20px' }}>
-                {produtosFiltradosWeb.map(prod => (
-                  <div key={prod.id} style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                {produtosFiltradosWeb.map((prod, index) => (
+                  <div key={index} style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                     <img src={prod.imagem} alt={prod.nome} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />
                     <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
                       <div>
