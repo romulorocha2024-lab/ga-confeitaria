@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// Conexão direta via API REST do Supabase (Ajustado para colunas em português)
-const SUPABASE_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/produtos';
+// Conexão direta via API REST do Supabase apontando para a tabela PRODUCTS
+const SUPABASE_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/PRODUCTS';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
 
 const headersSupabase = {
@@ -34,10 +34,10 @@ export default function App() {
       if (Array.isArray(data)) {
         const produtosFormatados = data.map(p => ({
           id: p.id,
-          nome: p.nome,
-          preco: Number(p.preco),
-          categoria: p.categoria,
-          imagem: p.imagem
+          nome: p.name,
+          preco: Number(p.price),
+          categoria: p.category,
+          imagem: p.image
         }));
         setProdutos(produtosFormatados);
       }
@@ -97,7 +97,7 @@ export default function App() {
     if (!nomeProduto || !precoProduto) return;
 
     const novaImg = imagemProduto || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80';
-    const dadosProd = { nome: nomeProduto, preco: parseFloat(precoProduto), categoria: categoriaProduto, imagem: novaImg };
+    const dadosProd = { name: nomeProduto, price: parseFloat(precoProduto), category: categoriaProduto, image: novaImg };
 
     if (editandoId) {
       await fetch(`${SUPABASE_URL}?id=eq.${editandoId}`, {
@@ -372,7 +372,7 @@ export default function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                 <input type="text" value={nomeClienteWeb} onChange={(e) => setNomeClienteWeb(e.target.value)} placeholder="Seu Nome Completo *" required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
                 <input type="text" value={telClienteWeb} onChange={(e) => setTelClienteWeb(e.target.value)} placeholder="Seu WhatsApp *" required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
-                <input type="text" value={endClienteWeb} onChange={(e) => setEndClienteWeb(e.target.value)} placeholder="Seu Endereço (Rua e Número) *" required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                <input type="text" value2={endClienteWeb} value={endClienteWeb} onChange={(e) => setEndClienteWeb(e.target.value)} placeholder="Seu Endereço (Rua e Número) *" required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
                 
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>Bairro / Taxa de Entrega:</label>
                 <select value={bairroSelecionado} onChange={(e) => setBairroSelecionado(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
