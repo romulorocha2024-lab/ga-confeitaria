@@ -211,10 +211,10 @@ export default function App() {
               <p style={{ margin: 0, color: '#666', fontWeight: '500' }}>Painel de Controle na Nuvem</p>
               
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '15px', flexWrap: 'wrap' }}>
-                <button onClick={() => setTelaAtual('home')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'home' ? '#d63384' : '#e9ecef', color: telaAtual === 'home' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🏠 Início</button>
-                <button onClick={() => setTelaAtual('produtos')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'produtos' ? '#6f42c1' : '#e9ecef', color: telaAtual === 'produtos' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>📋 Produtos</button>
-                <button onClick={() => setTelaAtual('cozinha')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'cozinha' ? '#fd7e14' : '#e9ecef', color: telaAtual === 'cozinha' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🍳 Cozinha</button>
-                <button onClick={() => setTelaAtual('financeiro')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'financeiro' ? '#198754' : '#e9ecef', color: telaAtual === 'financeiro' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>💰 Financeiro</button>
+                <button type="button" onClick={() => setTelaAtual('home')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'home' ? '#d63384' : '#e9ecef', color: telaAtual === 'home' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🏠 Início</button>
+                <button type="button" onClick={() => setTelaAtual('produtos')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'produtos' ? '#6f42c1' : '#e9ecef', color: telaAtual === 'produtos' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>📋 Produtos</button>
+                <button type="button" onClick={() => setTelaAtual('cozinha')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'cozinha' ? '#fd7e14' : '#e9ecef', color: telaAtual === 'cozinha' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🍳 Cozinha</button>
+                <button type="button" onClick={() => setTelaAtual('financeiro')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'financeiro' ? '#198754' : '#e9ecef', color: telaAtual === 'financeiro' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>💰 Financeiro</button>
               </div>
             </header>
 
@@ -276,8 +276,8 @@ export default function App() {
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '5px' }}>
-                        <button onClick={() => iniciarEdicaoProduto(prod)} style={{ background: '#ffc107', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Editar</button>
-                        <button onClick={() => excluirProduto(prod.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Excluir</button>
+                        <button type="button" onClick={() => iniciarEdicaoProduto(prod)} style={{ background: '#ffc107', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Editar</button>
+                        <button type="button" onClick={() => excluirProduto(prod.id)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Excluir</button>
                       </div>
                     </div>
                   ))}
@@ -316,7 +316,7 @@ export default function App() {
             )}
           </>
         ) : (
-          /* VISÃO DO CLIENTE */
+          /* VISÃO DO CLIENTE (CARDÁPIO COMPLETO) */
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #e9ecef', paddingBottom: '15px' }}>
               <h2 style={{ color: '#d63384', margin: '0 0 5px 0' }}>🍰 Geicy Aires Confeitaria</h2>
@@ -331,20 +331,24 @@ export default function App() {
             </div>
 
             <h3 style={{ fontSize: '16px', color: '#333', marginBottom: '10px' }}>2️⃣ Cardápio:</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '20px' }}>
-              {produtosFiltradosWeb.map(prod => (
-                <div key={prod.id} style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                  <img src={prod.imagem} alt={prod.nome} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />
-                  <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
-                    <div>
-                      <strong style={{ fontSize: '14px' }}>{prod.nome}</strong>
-                      <div style={{ color: '#d63384', fontWeight: 'bold', fontSize: '14px', marginTop: '4px' }}>R$ {prod.preco.toFixed(2)}</div>
+            {produtosFiltradosWeb.length === 0 ? (
+              <p style={{ color: '#888', fontStyle: 'italic', marginBottom: '20px' }}>Nenhum produto cadastrado nesta categoria ainda.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                {produtosFiltradosWeb.map(prod => (
+                  <div key={prod.id} style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
+                    <img src={prod.imagem} alt={prod.nome} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />
+                    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+                      <div>
+                        <strong style={{ fontSize: '14px' }}>{prod.nome}</strong>
+                        <div style={{ color: '#d63384', fontWeight: 'bold', fontSize: '14px', marginTop: '4px' }}>R$ {prod.preco.toFixed(2)}</div>
+                      </div>
+                      <button type="button" onClick={() => adicionarAoCarrinhoWeb(prod)} style={{ marginTop: '10px', background: '#d63384', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>+ Adicionar</button>
                     </div>
-                    <button type="button" onClick={() => adicionarAoCarrinhoWeb(prod)} style={{ marginTop: '10px', background: '#d63384', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>+ Adicionar</button>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             <form onSubmit={enviarPedidoWhatsApp}>
               <h3 style={{ fontSize: '16px', color: '#333', marginBottom: '10px' }}>3️⃣ Seu Carrinho:</h3>
@@ -372,7 +376,7 @@ export default function App() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
                 <input type="text" value={nomeClienteWeb} onChange={(e) => setNomeClienteWeb(e.target.value)} placeholder="Seu Nome Completo *" required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
                 <input type="text" value={telClienteWeb} onChange={(e) => setTelClienteWeb(e.target.value)} placeholder="Seu WhatsApp *" required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
-                <input type="text" value2={endClienteWeb} value={endClienteWeb} onChange={(e) => setEndClienteWeb(e.target.value)} placeholder="Seu Endereço (Rua e Número) *" required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                <input type="text" value={endClienteWeb} onChange={(e) => setEndClienteWeb(e.target.value)} placeholder="Seu Endereço (Rua e Número) *" required style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
                 
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>Bairro / Taxa de Entrega:</label>
                 <select value={bairroSelecionado} onChange={(e) => setBairroSelecionado(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
