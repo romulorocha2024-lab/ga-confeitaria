@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'; 
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import { createClient } from '@supabase/supabase-js';
 
@@ -69,12 +69,28 @@ function App() {
     'Retirada no Local (Grátis)': 0.00
   };
 
+  // Redimensionador de imagem para evitar arquivos pesados demais no Supabase
   const lidarComArquivoImagem = (e) => {
     const arquivo = e.target.files[0];
     if (arquivo) {
       const leitor = new FileReader();
-      leitor.onloadend = () => {
-        setImagemProduto(leitor.result);
+      leitor.onload = (eventoLeitura) => {
+        const img = new Image();
+        img.src = eventoLeitura.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const larguraMax = 400;
+          const escala = larguraMax / img.width;
+          canvas.width = larguraMax;
+          canvas.height = img.height * escala;
+
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          
+          // Converte para uma imagem leve comprimida em JPEG
+          const imagemCompacta = canvas.toDataURL('image/jpeg', 0.7);
+          setImagemProduto(imagemCompacta);
+        };
       };
       leitor.readAsDataURL(arquivo);
     }
@@ -212,9 +228,10 @@ function App() {
     setPedidos(pedidos.map(p => p.id === id ? { ...p, status: novoStatus } : p));
   };
 
+  // Filtro robusto que não falha com letras maiúsculas/minúsculas
   const produtosFiltradosWeb = filtroCategoriaWeb === 'Todos' 
     ? produtos 
-    : produtos.filter(p => p.categoria === filtroCategoriaWeb);
+    : produtos.filter(p => p.categoria && p.categoria.toLowerCase().trim() === filtroCategoriaWeb.toLowerCase().trim());
 
   const totalVendidoHoje = pedidos.reduce((acc, p) => acc + p.valor, 0);
 
