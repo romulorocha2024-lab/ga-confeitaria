@@ -1,5 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
+import { createClient } from '@supabase/supabase-js';
+
+// Conexão direta com o seu Supabase
+const supabaseUrl = 'SUA_PROJECT_URL_AQUI';
+const supabaseAnonKey = 'SUA_ANON_PUBLIC_KEY_AQUI';
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 function App() {
   const urlParams = new URLSearchParams(window.location.search);
@@ -12,13 +18,29 @@ function App() {
     { id: 1, cliente: 'Maria Silva', telefone: '(11) 98888-7777', itens: '20 Coxinhas, 1 Bolo', status: 'novos', entrega: 'Rua das Flores, 123', valor: 92.00, pagamento: 'Pix', obs: 'Sem cebola' }
   ]);
 
-  // Lista única de produtos compartilhada entre a gestão e o cardápio do cliente
-  const [produtos, setProdutos] = useState([
-    { id: 1, nome: 'Bolo de Chocolate', preco: 60.00, categoria: 'Bolos', imagem: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=300&auto=format&fit=crop&q=80' },
-    { id: 2, nome: 'Brownie', preco: 8.00, categoria: 'Doces', imagem: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=300&auto=format&fit=crop&q=80' },
-    { id: 3, nome: 'Mini Caseirinho', preco: 16.00, categoria: 'Bolos', imagem: 'https://images.unsplash.com/photo-1606890737304-57a1ca8a5b62?w=300&auto=format&fit=crop&q=80' },
-    { id: 4, nome: 'Coxinha (Porção)', preco: 10.00, categoria: 'Salgados', imagem: 'https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?w=300&auto=format&fit=crop&q=80' }
-  ]);
+  // Lista de produtos que vem direto da nuvem do Supabase
+  const [produtos, setProdutos] = useState([]);
+
+  // Buscar produtos do banco assim que o app abrir
+  useEffect(() => {
+    carregarProdutos();
+  }, []);
+
+  const carregarProdutos = async () => {
+    const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
+    if (error) {
+      console.error('Erro ao carregar produtos:', error);
+    } else if (data) {
+      const produtosFormatados = data.map(p => ({
+        id: p.id,
+        nome: p.name,
+        preco: Number(p.price),
+        categoria: p.category,
+        imagem: p.image
+      }));
+      setProdutos(produtosFormatados);
+    }
+  };
 
   const [telaAtual, setTelaAtual] = useState('home');
 
@@ -58,23 +80,39 @@ function App() {
     }
   };
 
-  const salvarProdutoCatalogo = (e) => {
+  const salvarProdutoCatalogo = async (e) => {
     e.preventDefault();
     if (!nomeProduto || !precoProduto) return;
 
     const novaImg = imagemProduto || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80';
 
     if (editandoId) {
-      setProdutos(produtos.map(p => p.id === editandoId ? { ...p, nome: nomeProduto, preco: parseFloat(precoProduto), categoria: categoriaProduto, imagem: novaImg } : p));
+      const { error } = await supabase
+        .from('products')
+        .update({ name: nomeProduto, price: parseFloat(precoProduto), category: categoriaProduto, image: novaImg })
+        .eq('id', editandoId);
+
+      if (error) {
+        alert('Erro ao atualizar produto no banco de dados.');
+        return;
+      }
       setEditandoId(null);
     } else {
-      setProdutos([...produtos, { id: Date.now(), nome: nomeProduto, preco: parseFloat(precoProduto), categoria: categoriaProduto, imagem: novaImg }]);
+      const { error } = await supabase
+        .from('products')
+        .insert([{ name: nomeProduto, price: parseFloat(precoProduto), category: categoriaProduto, image: novaImg }]);
+
+      if (error) {
+        alert('Erro ao salvar produto no banco de dados.');
+        return;
+      }
     }
 
     setNomeProduto('');
     setPrecoProduto('');
     setCategoriaProduto('Doces');
     setImagemProduto('');
+    carregarProdutos();
   };
 
   const iniciarEdicaoProduto = (prod) => {
@@ -85,9 +123,14 @@ function App() {
     setImagemProduto(prod.imagem);
   };
 
-  const excluirProduto = (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      setProdutos(produtos.filter(p => p.id !== id));
+  const excluirProduto = async (id) => {
+    if (window.confirm('Tem certeza que deseja excluir este produto do banco de dados?')) {
+      const { error } = await supabase.from('products').delete().eq('id', id);
+      if (error) {
+        alert('Erro ao excluir produto.');
+      } else {
+        carregarProdutos();
+      }
     }
   };
 
@@ -183,7 +226,7 @@ function App() {
           <>
             <header style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', marginBottom: '20px' }}>
               <h1 style={{ color: '#d63384', margin: '0 0 5px 0' }}>🍰 Geicy Aires Confeitaria</h1>
-              <p style={{ margin: 0, color: '#666', fontWeight: '500' }}>Painel Completo de Controle</p>
+              <p style={{ margin: 0, color: '#666', fontWeight: '500' }}>Painel de Controle na Nuvem (Supabase)</p>
               
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '15px', flexWrap: 'wrap' }}>
                 <button onClick={() => setTelaAtual('home')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'home' ? '#d63384' : '#e9ecef', color: telaAtual === 'home' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🏠 Início</button>
@@ -196,11 +239,10 @@ function App() {
             {telaAtual === 'home' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ marginTop: 0, color: '#d63384' }}>📊 Bem-vinda, Geicy!</h3>
-                <p style={{ color: '#666' }}>Tudo pronto por aqui! Os pedidos feitos pelos clientes no link vão cair direto na aba **Cozinha** e o faturamento vai para o **Financeiro**.</p>
+                <p style={{ color: '#666' }}>Seu sistema agora salva tudo na nuvem! Qualquer alteração feita aqui muda instantaneamente para os clientes.</p>
               </div>
             )}
 
-            {/* TELA DE PRODUTOS */}
             {telaAtual === 'produtos' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <h2 style={{ color: '#6f42c1', marginTop: 0 }}>📋 Gerenciar Produtos</h2>
@@ -221,7 +263,7 @@ function App() {
                     </select>
 
                     <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555', marginTop: '4px' }}>
-                      📸 Foto do produto (Galeria/PC):
+                      📸 Foto do produto:
                     </label>
                     <input type="file" accept="image/*" onChange={lidarComArquivoImagem} style={{ padding: '6px', background: 'white', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }} />
 
@@ -265,12 +307,9 @@ function App() {
               </div>
             )}
 
-            {/* TELA DA COZINHA */}
             {telaAtual === 'cozinha' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <h2 style={{ color: '#fd7e14', marginTop: 0 }}>🍳 Cozinha - Controle de Pedidos</h2>
-                <p style={{ color: '#666', fontSize: '14px' }}>Gerencie o andamento dos pedidos que chegam dos clientes.</p>
-
                 {pedidos.length === 0 ? (
                   <p style={{ color: '#888' }}>Nenhum pedido no momento.</p>
                 ) : (
@@ -299,7 +338,6 @@ function App() {
               </div>
             )}
 
-            {/* TELA FINANCEIRO */}
             {telaAtual === 'financeiro' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <h2 style={{ color: '#198754', marginTop: 0 }}>💰 Controle Financeiro</h2>
@@ -319,7 +357,6 @@ function App() {
               <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Escolha suas guloseimas favoritas!</p>
             </div>
 
-            {/* Filtros por Categoria */}
             <h3 style={{ fontSize: '16px', color: '#333', marginBottom: '10px' }}>1️⃣ Escolha a Categoria:</h3>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
               {['Todos', 'Doces', 'Bolos', 'Salgados', 'Bebidas'].map(cat => (
@@ -395,7 +432,7 @@ function App() {
                   <input type="text" value={trocoPara} onChange={(e) => setTrocoPara(e.target.value)} placeholder="Precisa de troco para quanto? (Ex: 50.00)" style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
                 )}
 
-                <textarea value={obsClienteWeb} onChange={(e) => setObsClienteWeb(e.target.value)} placeholder="Observações do pedido (ex: tirar cebola, caprichar na calda...)" style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', height: '60px' }}></textarea>
+                <textarea value={obsClienteWeb} onChange={(e) => setObsClienteWeb(e.target.value)} placeholder="Observações do pedido..." style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', height: '60px' }}></textarea>
               </div>
 
               <button type="submit" style={{ width: '100%', backgroundColor: '#25D366', color: 'white', border: 'none', padding: '14px', fontSize: '16px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 6px rgba(37, 211, 102, 0.2)' }}>
