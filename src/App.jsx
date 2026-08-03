@@ -1,62 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
-import { createClient } from '@supabase/supabase-js';
 
-// Conexão direta com o seu Supabase
-const supabaseUrl = 'https://cnogvsqpmeowrdidweve.supabase.co';
-const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Conexão direta via API REST do Supabase (Sem precisar de pacotes externos)
+const SUPABASE_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/products';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
 
-function App() {
+const headersSupabase = {
+  'apikey': SUPABASE_KEY,
+  'Authorization': `Bearer ${SUPABASE_KEY}`,
+  'Content-Type': 'application/json'
+};
+
+export default function App() {
   const urlParams = new URLSearchParams(window.location.search);
   const ehAdmin = urlParams.get('admin') === 'geicy';
 
-  const [modo, setModo] = useState(ehAdmin ? 'gestao' : 'cardapio');
-
-  // Pedidos da Cozinha
   const [pedidos, setPedidos] = useState([
     { id: 1, cliente: 'Maria Silva', telefone: '(11) 98888-7777', itens: '20 Coxinhas, 1 Bolo', status: 'novos', entrega: 'Rua das Flores, 123', valor: 92.00, pagamento: 'Pix', obs: 'Sem cebola' }
   ]);
 
-  // Lista de produtos que vem direto da nuvem do Supabase
   const [produtos, setProdutos] = useState([]);
 
-  // Buscar produtos do banco assim que o app abrir
   useEffect(() => {
     carregarProdutos();
   }, []);
 
   const carregarProdutos = async () => {
-    const { data, error } = await supabase.from('products').select('*').order('id', { ascending: true });
-    if (error) {
-      console.error('Erro ao carregar produtos:', error);
-    } else if (data) {
-      const produtosFormatados = data.map(p => ({
-        id: p.id,
-        nome: p.name,
-        preco: Number(p.price),
-        categoria: p.category,
-        imagem: p.image
-      }));
-      setProdutos(produtosFormatados);
+    try {
+      const resposta = await fetch(`${SUPABASE_URL}?select=*&order=id.asc`, {
+        headers: headersSupabase
+      });
+      const data = await resposta.json();
+      if (Array.isArray(data)) {
+        const produtosFormatados = data.map(p => ({
+          id: p.id,
+          nome: p.name,
+          preco: Number(p.price),
+          categoria: p.category,
+          imagem: p.image
+        }));
+        setProdutos(produtosFormatados);
+      }
+    } catch (err) {
+      console.error('Erro ao carregar produtos:', err);
     }
   };
 
   const [telaAtual, setTelaAtual] = useState('home');
-
-  // Gestão de Produtos
   const [editandoId, setEditandoId] = useState(null);
   const [nomeProduto, setNomeProduto] = useState('');
   const [precoProduto, setPrecoProduto] = useState('');
   const [categoriaProduto, setCategoriaProduto] = useState('Doces');
   const [imagemProduto, setImagemProduto] = useState('');
 
-  // Carrinho e Checkout do Cliente
   const [carrinhoCliente, setCarrinhoCliente] = useState([]);
   const [nomeClienteWeb, setNomeClienteWeb] = useState('');
   const [telClienteWeb, setTelClienteWeb] = useState('');
   const [endClienteWeb, setEndClienteWeb] = useState('');
-  const [bairroSelecionado, setBairroSelecionado] = useState('Centro (R$ 5,00)');
+  const [bairroSelecionado, setBairroSelecionado] = useState('Bairros Perto (R$ 3,00)');
   const [pagamentoWeb, setPagamentoWeb] = useState('Pix');
   const [trocoPara, setTrocoPara] = useState('');
   const [obsClienteWeb, setObsClienteWeb] = useState('');
@@ -69,7 +70,6 @@ function App() {
     'Retirada no Local (Grátis)': 0.00
   };
 
-  // Redimensionador de imagem para evitar arquivos pesados demais no Supabase
   const lidarComArquivoImagem = (e) => {
     const arquivo = e.target.files[0];
     if (arquivo) {
@@ -83,13 +83,9 @@ function App() {
           const escala = larguraMax / img.width;
           canvas.width = larguraMax;
           canvas.height = img.height * escala;
-
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          
-          // Converte para uma imagem leve comprimida em JPEG
-          const imagemCompacta = canvas.toDataURL('image/jpeg', 0.7);
-          setImagemProduto(imagemCompacta);
+          setImagemProduto(canvas.toDataURL('image/jpeg', 0.7));
         };
       };
       leitor.readAsDataURL(arquivo);
@@ -101,27 +97,21 @@ function App() {
     if (!nomeProduto || !precoProduto) return;
 
     const novaImg = imagemProduto || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80';
+    const dadosProd = { name: nomeProduto, price: parseFloat(precoProduto), category: categoriaProduto, image: novaImg };
 
     if (editandoId) {
-      const { error } = await supabase
-        .from('products')
-        .update({ name: nomeProduto, price: parseFloat(precoProduto), category: categoriaProduto, image: novaImg })
-        .eq('id', editandoId);
-
-      if (error) {
-        alert('Erro ao atualizar produto no banco de dados.');
-        return;
-      }
+      await fetch(`${SUPABASE_URL}?id=eq.${editandoId}`, {
+        method: 'PATCH',
+        headers: { ...headersSupabase, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(dadosProd)
+      });
       setEditandoId(null);
     } else {
-      const { error } = await supabase
-        .from('products')
-        .insert([{ name: nomeProduto, price: parseFloat(precoProduto), category: categoriaProduto, image: novaImg }]);
-
-      if (error) {
-        alert('Erro ao salvar produto no banco de dados.');
-        return;
-      }
+      await fetch(SUPABASE_URL, {
+        method: 'POST',
+        headers: { ...headersSupabase, 'Prefer': 'return=minimal' },
+        body: JSON.stringify(dadosProd)
+      });
     }
 
     setNomeProduto('');
@@ -140,13 +130,12 @@ function App() {
   };
 
   const excluirProduto = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este produto do banco de dados?')) {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) {
-        alert('Erro ao excluir produto.');
-      } else {
-        carregarProdutos();
-      }
+    if (window.confirm('Tem certeza que deseja excluir este produto?')) {
+      await fetch(`${SUPABASE_URL}?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: headersSupabase
+      });
+      carregarProdutos();
     }
   };
 
@@ -158,25 +147,11 @@ function App() {
     setImagemProduto('');
   };
 
-  const adicionarAoCarrinhoWeb = (produto) => {
-    setCarrinhoCliente([...carrinhoCliente, produto]);
-  };
-
-  const removerDoCarrinhoWeb = (index) => {
-    setCarrinhoCliente(carrinhoCliente.filter((_, i) => i !== index));
-  };
-
-  const calcularSubtotalWeb = () => {
-    return carrinhoCliente.reduce((total, item) => total + item.preco, 0);
-  };
-
-  const calcularTaxa = () => {
-    return taxasEntrega[bairroSelecionado] || 0;
-  };
-
-  const calcularTotalGeralWeb = () => {
-    return calcularSubtotalWeb() + calcularTaxa();
-  };
+  const adicionarAoCarrinhoWeb = (produto) => setCarrinhoCliente([...carrinhoCliente, produto]);
+  const removerDoCarrinhoWeb = (index) => setCarrinhoCliente(carrinhoCliente.filter((_, i) => i !== index));
+  const calcularSubtotalWeb = () => carrinhoCliente.reduce((total, item) => total + item.preco, 0);
+  const calcularTaxa = () => taxasEntrega[bairroSelecionado] || 0;
+  const calcularTotalGeralWeb = () => calcularSubtotalWeb() + calcularTaxa();
 
   const enviarPedidoWhatsApp = (e) => {
     e.preventDefault();
@@ -191,11 +166,9 @@ function App() {
     const total = calcularTotalGeralWeb().toFixed(2);
 
     let infoPagamento = pagamentoWeb;
-    if (pagamentoWeb === 'Dinheiro' && trocoPara) {
-      infoPagamento += ` (Troco para R$ ${trocoPara})`;
-    }
+    if (pagamentoWeb === 'Dinheiro' && trocoPara) infoPagamento += ` (Troco para R$ ${trocoPara})`;
 
-    const novoPedidoCozinha = {
+    setPedidos([{
       id: Date.now(),
       cliente: nomeClienteWeb,
       telefone: telClienteWeb,
@@ -205,8 +178,7 @@ function App() {
       valor: parseFloat(total),
       pagamento: infoPagamento,
       obs: obsClienteWeb
-    };
-    setPedidos([novoPedidoCozinha, ...pedidos]);
+    }, ...pedidos]);
 
     const mensagem = `Olá, Geicy! Gostaria de fazer o seguinte pedido:\n\n` +
       `*Cliente:* ${nomeClienteWeb}\n` +
@@ -219,16 +191,13 @@ function App() {
       `*Forma de Pagamento:* ${infoPagamento}\n` +
       `*Observações:* ${obsClienteWeb || 'Nenhuma'}`;
 
-    const numeroWhatsApp = '5598985578221'; 
-    const linkWpp = `https://api.whatsapp.com/send?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensagem)}`;
-    window.open(linkWpp, '_blank');
+    window.open(`https://api.whatsapp.com/send?phone=5598985578221&text=${encodeURIComponent(mensagem)}`, '_blank');
   };
 
   const mudarStatusPedido = (id, novoStatus) => {
     setPedidos(pedidos.map(p => p.id === id ? { ...p, status: novoStatus } : p));
   };
 
-  // Filtro robusto que não falha com letras maiúsculas/minúsculas
   const produtosFiltradosWeb = filtroCategoriaWeb === 'Todos' 
     ? produtos 
     : produtos.filter(p => p.categoria && p.categoria.toLowerCase().trim() === filtroCategoriaWeb.toLowerCase().trim());
@@ -239,11 +208,11 @@ function App() {
     <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#fdf2f4', minHeight: '100vh', padding: '20px', color: '#333' }}>
       <div style={{ maxWidth: '750px', margin: '0 auto' }}>
         
-        {modo === 'gestao' && ehAdmin ? (
+        {ehAdmin ? (
           <>
             <header style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', marginBottom: '20px' }}>
               <h1 style={{ color: '#d63384', margin: '0 0 5px 0' }}>🍰 Geicy Aires Confeitaria</h1>
-              <p style={{ margin: 0, color: '#666', fontWeight: '500' }}>Painel de Controle na Nuvem (Supabase)</p>
+              <p style={{ margin: 0, color: '#666', fontWeight: '500' }}>Painel de Controle na Nuvem</p>
               
               <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '15px', flexWrap: 'wrap' }}>
                 <button onClick={() => setTelaAtual('home')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'home' ? '#d63384' : '#e9ecef', color: telaAtual === 'home' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🏠 Início</button>
@@ -256,7 +225,7 @@ function App() {
             {telaAtual === 'home' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ marginTop: 0, color: '#d63384' }}>📊 Bem-vinda, Geicy!</h3>
-                <p style={{ color: '#666' }}>Seu sistema agora salva tudo na nuvem! Qualquer alteração feita aqui muda instantaneamente para os clientes.</p>
+                <p style={{ color: '#666' }}>Seu sistema está sincronizado com o banco de dados.</p>
               </div>
             )}
 
@@ -279,9 +248,7 @@ function App() {
                       <option value="Bebidas">Bebidas</option>
                     </select>
 
-                    <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555', marginTop: '4px' }}>
-                      📸 Foto do produto:
-                    </label>
+                    <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555', marginTop: '4px' }}>📸 Foto do produto:</label>
                     <input type="file" accept="image/*" onChange={lidarComArquivoImagem} style={{ padding: '6px', background: 'white', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }} />
 
                     {imagemProduto && (
@@ -296,9 +263,7 @@ function App() {
                         {editandoId ? 'Salvar Alterações' : 'Cadastrar Produto'}
                       </button>
                       {editandoId && (
-                        <button type="button" onClick={cancelarEdicao} style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '10px', fontWeight: 'bold', borderRadius: '6px', cursor: 'pointer' }}>
-                          Cancelar
-                        </button>
+                        <button type="button" onClick={cancelarEdicao} style={{ backgroundColor: '#6c757d', color: 'white', border: 'none', padding: '10px', fontWeight: 'bold', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
                       )}
                     </div>
                   </div>
@@ -327,27 +292,16 @@ function App() {
             {telaAtual === 'cozinha' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <h2 style={{ color: '#fd7e14', marginTop: 0 }}>🍳 Cozinha - Controle de Pedidos</h2>
-                {pedidos.length === 0 ? (
-                  <p style={{ color: '#888' }}>Nenhum pedido no momento.</p>
-                ) : (
+                {pedidos.length === 0 ? <p style={{ color: '#888' }}>Nenhum pedido no momento.</p> : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     {pedidos.map(ped => (
                       <div key={ped.id} style={{ background: '#fff9db', border: '1px solid #ffe066', padding: '15px', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                           <strong style={{ fontSize: '16px' }}>{ped.cliente}</strong>
-                          <span style={{ fontSize: '12px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '4px', background: ped.status === 'novos' ? '#ff922b' : ped.status === 'preparando' ? '#fab005' : '#51cf66', color: 'white' }}>
-                            {ped.status.toUpperCase()}
-                          </span>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '4px', background: ped.status === 'novos' ? '#ff922b' : '#51cf66', color: 'white' }}>{ped.status.toUpperCase()}</span>
                         </div>
                         <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Itens:</strong> {ped.itens}</p>
                         <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Endereço:</strong> {ped.entrega}</p>
-                        <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Pagamento:</strong> {ped.pagamento}</p>
-                        {ped.obs && <p style={{ margin: '4px 0', fontSize: '13px', color: '#c92a2a' }}><strong>Obs:</strong> {ped.obs}</p>}
-                        <div style={{ marginTop: '10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                          <button onClick={() => mudarStatusPedido(ped.id, 'novos')} style={{ padding: '5px 10px', background: '#ff922b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Novo</button>
-                          <button onClick={() => mudarStatusPedido(ped.id, 'preparando')} style={{ padding: '5px 10px', background: '#fab005', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Preparando 👨‍🍳</button>
-                          <button onClick={() => mudarStatusPedido(ped.id, 'pronto')} style={{ padding: '5px 10px', background: '#51cf66', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Pronto / Entregue ✅</button>
-                        </div>
                       </div>
                     ))}
                   </div>
@@ -358,16 +312,15 @@ function App() {
             {telaAtual === 'financeiro' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
                 <h2 style={{ color: '#198754', marginTop: 0 }}>💰 Controle Financeiro</h2>
-                <div style={{ background: '#d1e7dd', color: '#0f5132', padding: '20px', borderRadius: '8px', textAlign: 'center', marginBottom: '20px' }}>
+                <div style={{ background: '#d1e7dd', color: '#0f5132', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
                   <h3 style={{ margin: '0 0 5px 0' }}>Total Registrado em Pedidos</h3>
                   <div style={{ fontSize: '28px', fontWeight: 'bold' }}>R$ {totalVendidoHoje.toFixed(2)}</div>
                 </div>
               </div>
             )}
-
           </>
         ) : (
-          /* VISÃO DO CLIENTE (CARDÁPIO ONLINE) */
+          /* VISÃO DO CLIENTE */
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #e9ecef', paddingBottom: '15px' }}>
               <h2 style={{ color: '#d63384', margin: '0 0 5px 0' }}>🍰 Geicy Aires Confeitaria</h2>
@@ -377,9 +330,7 @@ function App() {
             <h3 style={{ fontSize: '16px', color: '#333', marginBottom: '10px' }}>1️⃣ Escolha a Categoria:</h3>
             <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
               {['Todos', 'Doces', 'Bolos', 'Salgados', 'Bebidas'].map(cat => (
-                <button key={cat} type="button" onClick={() => setFiltroCategoriaWeb(cat)} style={{ padding: '6px 12px', background: filtroCategoriaWeb === cat ? '#d63384' : '#e9ecef', color: filtroCategoriaWeb === cat ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>
-                  {cat}
-                </button>
+                <button key={cat} type="button" onClick={() => setFiltroCategoriaWeb(cat)} style={{ padding: '6px 12px', background: filtroCategoriaWeb === cat ? '#d63384' : '#e9ecef', color: filtroCategoriaWeb === cat ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' }}>{cat}</button>
               ))}
             </div>
 
@@ -393,9 +344,7 @@ function App() {
                       <strong style={{ fontSize: '14px' }}>{prod.nome}</strong>
                       <div style={{ color: '#d63384', fontWeight: 'bold', fontSize: '14px', marginTop: '4px' }}>R$ {prod.preco.toFixed(2)}</div>
                     </div>
-                    <button type="button" onClick={() => adicionarAoCarrinhoWeb(prod)} style={{ marginTop: '10px', background: '#d63384', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>
-                      + Adicionar
-                    </button>
+                    <button type="button" onClick={() => adicionarAoCarrinhoWeb(prod)} style={{ marginTop: '10px', background: '#d63384', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>+ Adicionar</button>
                   </div>
                 </div>
               ))}
@@ -404,9 +353,7 @@ function App() {
             <form onSubmit={enviarPedidoWhatsApp}>
               <h3 style={{ fontSize: '16px', color: '#333', marginBottom: '10px' }}>3️⃣ Seu Carrinho:</h3>
               <div style={{ background: '#fff3cd', padding: '12px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #ffc107' }}>
-                {carrinhoCliente.length === 0 ? (
-                  <p style={{ color: '#856404', margin: 0, fontSize: '13px' }}>Nenhum produto escolhido ainda.</p>
-                ) : (
+                {carrinhoCliente.length === 0 ? <p style={{ color: '#856404', margin: 0, fontSize: '13px' }}>Nenhum produto escolhido ainda.</p> : (
                   <div>
                     {carrinhoCliente.map((item, index) => (
                       <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px', fontSize: '14px' }}>
@@ -433,9 +380,7 @@ function App() {
                 
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>Bairro / Taxa de Entrega:</label>
                 <select value={bairroSelecionado} onChange={(e) => setBairroSelecionado(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
-                  {Object.keys(taxasEntrega).map(bairro => (
-                    <option key={bairro} value={bairro}>{bairro}</option>
-                  ))}
+                  {Object.keys(taxasEntrega).map(bairro => <option key={bairro} value={bairro}>{bairro}</option>)}
                 </select>
 
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>Forma de Pagamento:</label>
@@ -463,5 +408,3 @@ function App() {
     </div>
   );
 }
-
-export default App;
