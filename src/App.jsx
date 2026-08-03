@@ -3,8 +3,8 @@ import './App.css';
 import { createClient } from '@supabase/supabase-js';
 
 // Conexão direta com o seu Supabase
-const supabaseUrl = 'SUA_PROJECT_URL_AQUI';
-const supabaseAnonKey = 'SUA_ANON_PUBLIC_KEY_AQUI';
+const supabaseUrl = 'https://cnogvsqpmeowrdidweve.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 function App() {
