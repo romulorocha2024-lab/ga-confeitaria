@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// Conexão direta via API REST do Supabase apontando para a tabela PRODUCTS
 const SUPABASE_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/PRODUCTS';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
 
 const headersSupabase = {
   'apikey': SUPABASE_KEY,
   'Authorization': `Bearer ${SUPABASE_KEY}`,
-  'Content-Type': 'application/json'
+  'Content-Type': 'application/json',
+  'Prefer': 'return=representation'
 };
 
 export default function App() {
@@ -75,18 +75,7 @@ export default function App() {
     if (arquivo) {
       const leitor = new FileReader();
       leitor.onload = (eventoLeitura) => {
-        const img = new Image();
-        img.src = eventoLeitura.target.result;
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const larguraMax = 400;
-          const escala = larguraMax / img.width;
-          canvas.width = larguraMax;
-          canvas.height = img.height * escala;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          setImagemProduto(canvas.toDataURL('image/jpeg', 0.7));
-        };
+        setImagemProduto(eventoLeitura.target.result);
       };
       leitor.readAsDataURL(arquivo);
     }
@@ -94,31 +83,51 @@ export default function App() {
 
   const salvarProdutoCatalogo = async (e) => {
     e.preventDefault();
-    if (!nomeProduto || !precoProduto) return;
-
-    const novaImg = imagemProduto || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80';
-    const dadosProd = { name: nomeProduto, price: parseFloat(precoProduto), category: categoriaProduto, image: novaImg };
-
-    if (editandoId) {
-      await fetch(`${SUPABASE_URL}?id=eq.${editandoId}`, {
-        method: 'PATCH',
-        headers: { ...headersSupabase, 'Prefer': 'return=minimal' },
-        body: JSON.stringify(dadosProd)
-      });
-      setEditandoId(null);
-    } else {
-      await fetch(SUPABASE_URL, {
-        method: 'POST',
-        headers: { ...headersSupabase, 'Prefer': 'return=minimal' },
-        body: JSON.stringify(dadosProd)
-      });
+    if (!nomeProduto || !precoProduto) {
+      alert('Preencha o nome e o preço!');
+      return;
     }
 
-    setNomeProduto('');
-    setPrecoProduto('');
-    setCategoriaProduto('Doces');
-    setImagemProduto('');
-    carregarProdutos();
+    const novaImg = imagemProduto || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80';
+    const dadosProd = { 
+      name: nomeProduto.trim(), 
+      price: parseFloat(precoProduto), 
+      category: categoriaProduto, 
+      image: novaImg 
+    };
+
+    try {
+      if (editandoId) {
+        await fetch(`${SUPABASE_URL}?id=eq.${editandoId}`, {
+          method: 'PATCH',
+          headers: headersSupabase,
+          body: JSON.stringify(dadosProd)
+        });
+        setEditandoId(null);
+      } else {
+        const res = await fetch(SUPABASE_URL, {
+          method: 'POST',
+          headers: headersSupabase,
+          body: JSON.stringify(dadosProd)
+        });
+        if (!res.ok) {
+          const erroText = await res.text();
+          console.error('Erro do Supabase:', erroText);
+          alert('Erro ao salvar no banco. Verifique o console.');
+          return;
+        }
+      }
+
+      setNomeProduto('');
+      setPrecoProduto('');
+      setCategoriaProduto('Doces');
+      setImagemProduto('');
+      carregarProdutos();
+      alert('Produto cadastrado com sucesso!');
+    } catch (err) {
+      console.error('Erro na requisição:', err);
+      alert('Erro de conexão ao salvar produto.');
+    }
   };
 
   const iniciarEdicaoProduto = (prod) => {
@@ -244,7 +253,7 @@ export default function App() {
                       <option value="Bebidas">Bebidas</option>
                     </select>
 
-                    <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555', marginTop: '4px' }}>📸 Foto do produto:</label>
+                    <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555', marginTop: '4px' }}>📸 Foto do produto (Opcional):</label>
                     <input type="file" accept="image/*" onChange={lidarComArquivoImagem} style={{ padding: '6px', background: 'white', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }} />
 
                     {imagemProduto && (
@@ -316,7 +325,7 @@ export default function App() {
             )}
           </>
         ) : (
-          /* VISÃO DO CLIENTE (CARDÁPIO COMPLETO) */
+          /* VISÃO DO CLIENTE */
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #e9ecef', paddingBottom: '15px' }}>
               <h2 style={{ color: '#d63384', margin: '0 0 5px 0' }}>🍰 Geicy Aires Confeitaria</h2>
