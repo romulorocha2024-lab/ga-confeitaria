@@ -2,7 +2,12 @@ import React, { useState } from 'react';
 import './App.css';
 
 function App() {
-  const [modo, setModo] = useState('gestao');
+  // Verifica automaticamente se a URL possui o código secreto de administrador (?admin=geicy)
+  const urlParams = new URLSearchParams(window.location.search);
+  const ehAdmin = urlParams.get('admin') === 'geicy';
+
+  // Se for admin, abre em 'gestao', caso contrário o cliente vê apenas o 'cardapio'
+  const [modo, setModo] = useState(ehAdmin ? 'gestao' : 'cardapio');
 
   // Pedidos da Cozinha
   const [pedidos, setPedidos] = useState([
@@ -176,20 +181,7 @@ function App() {
     <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#fdf2f4', minHeight: '100vh', padding: '20px', color: '#333' }}>
       <div style={{ maxWidth: '750px', margin: '0 auto' }}>
         
-        {/* Barra de Troca de Visão */}
-        <div style={{ background: '#333', padding: '10px', borderRadius: '8px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'white', flexWrap: 'wrap', gap: '8px' }}>
-          <span style={{ fontSize: '13px', fontWeight: 'bold' }}>👁️ Visualização atual:</span>
-          <div style={{ display: 'flex', gap: '5px' }}>
-            <button onClick={() => setModo('gestao')} style={{ padding: '6px 12px', background: modo === 'gestao' ? '#d63384' : '#555', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>
-              Painel de Gestão (Você)
-            </button>
-            <button onClick={() => setModo('cardapio')} style={{ padding: '6px 12px', background: modo === 'cardapio' ? '#0dcaf0' : '#555', color: modo === 'cardapio' ? '#000' : 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' }}>
-              Cardápio do Cliente (Link)
-            </button>
-          </div>
-        </div>
-
-        {modo === 'gestao' ? (
+        {modo === 'gestao' && ehAdmin ? (
           <>
             <header style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', marginBottom: '20px' }}>
               <h1 style={{ color: '#d63384', margin: '0 0 5px 0' }}>🍰 Geicy Aires Confeitaria</h1>
