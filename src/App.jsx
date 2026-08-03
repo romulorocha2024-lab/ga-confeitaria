@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import './App.css';
 
 function App() {
-  // Verifica automaticamente se a URL possui o código secreto de administrador (?admin=geicy)
   const urlParams = new URLSearchParams(window.location.search);
   const ehAdmin = urlParams.get('admin') === 'geicy';
 
-  // Se for admin, abre em 'gestao', caso contrário o cliente vê apenas o 'cardapio'
   const [modo, setModo] = useState(ehAdmin ? 'gestao' : 'cardapio');
 
   // Pedidos da Cozinha
@@ -14,7 +12,7 @@ function App() {
     { id: 1, cliente: 'Maria Silva', telefone: '(11) 98888-7777', itens: '20 Coxinhas, 1 Bolo', status: 'novos', entrega: 'Rua das Flores, 123', valor: 92.00, pagamento: 'Pix', obs: 'Sem cebola' }
   ]);
 
-  // Produtos com Categorias
+  // Lista única de produtos compartilhada entre a gestão e o cardápio do cliente
   const [produtos, setProdutos] = useState([
     { id: 1, nome: 'Bolo de Chocolate', preco: 60.00, categoria: 'Bolos', imagem: 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?w=300&auto=format&fit=crop&q=80' },
     { id: 2, nome: 'Brownie', preco: 8.00, categoria: 'Doces', imagem: 'https://images.unsplash.com/photo-1606313564200-e75d5e30476c?w=300&auto=format&fit=crop&q=80' },
