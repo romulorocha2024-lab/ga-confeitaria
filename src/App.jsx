@@ -200,7 +200,9 @@ export default function App() {
       `*Forma de Pagamento:* ${infoPagamento}\n` +
       `*Observações:* ${obsClienteWeb || 'Nenhuma'}`;
 
-    window.open(`https://api.whatsapp.com/send?phone=5598985578221&text=${encodeURIComponent(mensagem)}`, '_blank');
+    const numeroWhatsApp = '5598988832656';
+
+    window.open(`https://api.whatsapp.com/send?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensagem)}`, '_blank');
   };
 
   const produtosFiltradosWeb = filtroCategoriaWeb === 'Todos' 
