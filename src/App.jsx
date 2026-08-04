@@ -59,6 +59,25 @@ export default function App() {
     }
   };
 
+  const concluirPedido = async (idPedido) => {
+    try {
+      const res = await fetch(`${SUPABASE_PEDIDOS_URL}?id=eq.${idPedido}`, {
+        method: 'PATCH',
+        headers: headersSupabase,
+        body: JSON.stringify({ status: 'concluido' })
+      });
+
+      if (res.ok) {
+        // Atualiza o estado localmente para sumir da tela na mesma hora
+        setPedidos(pedidos.map(p => p.id === idPedido ? { ...p, status: 'concluido' } : p));
+      } else {
+        alert('Erro ao concluir o pedido.');
+      }
+    } catch (err) {
+      console.error('Erro ao concluir pedido:', err);
+    }
+  };
+
   const [telaAtual, setTelaAtual] = useState('home');
   const [editandoId, setEditandoId] = useState(null);
   const [nomeProduto, setNomeProduto] = useState('');
@@ -71,7 +90,6 @@ export default function App() {
   const [telClienteWeb, setTelClienteWeb] = useState('');
   const [endClienteWeb, setEndClienteWeb] = useState('');
   
-  // Taxas atualizadas conforme os bairros solicitados
   const [bairroSelecionado, setBairroSelecionado] = useState('Bairros Próximos (R$ 3,00)');
 
   const taxasEntrega = {
@@ -237,6 +255,9 @@ export default function App() {
 
   const totalVendidoGeral = pedidos.reduce((acc, p) => acc + Number(p.valor || 0), 0);
 
+  // Filtra os pedidos da cozinha para exibir apenas os que NÃO estão concluídos
+  const pedidosCozinhaAtivos = pedidos.filter(p => p.status !== 'concluido');
+
   return (
     <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#fdf2f4', minHeight: '100vh', padding: '20px', color: '#333' }}>
       <div style={{ maxWidth: '750px', margin: '0 auto' }}>
@@ -328,9 +349,9 @@ export default function App() {
                   <h2 style={{ color: '#fd7e14', margin: 0 }}>🍳 Cozinha - Controle de Pedidos</h2>
                   <button type="button" onClick={carregarPedidos} style={{ background: '#e9ecef', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>🔄 Atualizar</button>
                 </div>
-                {pedidos.length === 0 ? <p style={{ color: '#888' }}>Nenhum pedido no momento.</p> : (
+                {pedidosCozinhaAtivos.length === 0 ? <p style={{ color: '#888' }}>Nenhum pedido pendente na cozinha no momento. 🎉</p> : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    {pedidos.map(ped => (
+                    {pedidosCozinhaAtivos.map(ped => (
                       <div key={ped.id} style={{ background: '#fff9db', border: '1px solid #ffe066', padding: '15px', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                           <strong style={{ fontSize: '16px' }}>{ped.cliente}</strong>
@@ -340,6 +361,14 @@ export default function App() {
                         <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Endereço:</strong> {ped.entrega}</p>
                         <p style={{ margin: '4px 0', fontSize: '14px' }}><strong>Pagamento:</strong> {ped.pagamento} | <strong>Valor:</strong> R$ {Number(ped.valor || 0).toFixed(2)}</p>
                         {ped.obs && <p style={{ margin: '4px 0', fontSize: '13px', color: '#c92a2a' }}><strong>Obs:</strong> {ped.obs}</p>}
+                        
+                        <button 
+                          type="button" 
+                          onClick={() => concluirPedido(ped.id)}
+                          style={{ marginTop: '12px', width: '100%', backgroundColor: '#198754', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
+                        >
+                          ✅ Concluir Pedido
+                        </button>
                       </div>
                     ))}
                   </div>
