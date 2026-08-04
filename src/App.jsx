@@ -70,18 +70,21 @@ export default function App() {
   const [nomeClienteWeb, setNomeClienteWeb] = useState('');
   const [telClienteWeb, setTelClienteWeb] = useState('');
   const [endClienteWeb, setEndClienteWeb] = useState('');
-  const [bairroSelecionado, setBairroSelecionado] = useState('Bairros Perto (R$ 3,00)');
+  
+  // Taxas atualizadas conforme os bairros solicitados
+  const [bairroSelecionado, setBairroSelecionado] = useState('Bairros Próximos (R$ 3,00)');
+
+  const taxasEntrega = {
+    'Bairros Próximos (R$ 3,00)': 3.00,
+    'Outros Bairros (Campo Novo, Matriz e similares) (R$ 4,00)': 4.00,
+    'Frei Serafim, Vila Zizi, Santa Eulália e Ibacazinho (R$ 5,00)': 5.00,
+    'Retirada no Local (Grátis)': 0.00
+  };
+
   const [pagamentoWeb, setPagamentoWeb] = useState('Pix');
   const [trocoPara, setTrocoPara] = useState('');
   const [obsClienteWeb, setObsClienteWeb] = useState('');
   const [filtroCategoriaWeb, setFiltroCategoriaWeb] = useState('Todos');
-
-  const taxasEntrega = {
-    'Bairros Perto (R$ 3,00)': 3.00,
-    'Outros Lugares (R$ 4,00)': 4.00,
-    'Lugares Mais Longe (R$ 5,00)': 5.00,
-    'Retirada no Local (Grátis)': 0.00
-  };
 
   const lidarComArquivoImagem = (e) => {
     const arquivo = e.target.files[0];
@@ -492,7 +495,7 @@ export default function App() {
                 </select>
 
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>Forma de Pagamento:</label>
-                <select value={pagamentoWeb} onChange={(e) => pagamentoWeb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
+                <select value={pagamentoWeb} onChange={(e) => setPagamentoWeb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
                   <option value="Pix">Pix</option>
                   <option value="Cartão de Crédito/Débito">Cartão de Crédito/Débito</option>
                   <option value="Dinheiro">Dinheiro</option>
