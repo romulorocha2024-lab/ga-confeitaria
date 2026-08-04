@@ -232,7 +232,7 @@ export default function App() {
     ? produtos 
     : produtos.filter(p => p.categoria && p.categoria.toLowerCase().trim() === filtroCategoriaWeb.toLowerCase().trim());
 
-  const totalVendidoHoje = pedidos.reduce((acc, p) => acc + Number(p.valor || 0), 0);
+  const totalVendidoGeral = pedidos.reduce((acc, p) => acc + Number(p.valor || 0), 0);
 
   return (
     <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#fdf2f4', minHeight: '100vh', padding: '20px', color: '#333' }}>
@@ -346,10 +346,79 @@ export default function App() {
 
             {telaAtual === 'financeiro' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
-                <h2 style={{ color: '#198754', marginTop: 0 }}>💰 Controle Financeiro</h2>
-                <div style={{ background: '#d1e7dd', color: '#0f5132', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
-                  <h3 style={{ margin: '0 0 5px 0' }}>Total Registrado em Pedidos</h3>
-                  <div style={{ fontSize: '28px', fontWeight: 'bold' }}>R$ {totalVendidoHoje.toFixed(2)}</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
+                  <h2 style={{ color: '#198754', margin: 0 }}>💰 Controle Financeiro</h2>
+                  
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      const csvContent = "data:text/csv;charset=utf-8," 
+                        + ["ID,Cliente,Telefone,Itens,Valor,Pagamento,Data"].join(",") + "\n"
+                        + pedidos.map(p => `${p.id},"${p.cliente}","${p.telefone}","${p.itens}",${p.valor},"${p.pagamento}","${p.created_at || ''}"`).join("\n");
+                      const encodedUri = encodeURI(csvContent);
+                      const link = document.createElement("a");
+                      link.setAttribute("href", encodedUri);
+                      link.setAttribute("download", `backup_pedidos_${new Date().toISOString().slice(0,10)}.csv`);
+                      document.body.appendChild(link);
+                      link.click();
+                      document.body.removeChild(link);
+                    }}
+                    style={{ background: '#198754', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    📥 Baixar Backup de Pedidos (CSV)
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '25px' }}>
+                  <div style={{ background: '#d1e7dd', color: '#0f5132', padding: '15px', borderRadius: '8px', border: '1px solid #badbcc' }}>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '13px', fontWeight: '500' }}>Faturamento Total</p>
+                    <div style={{ fontSize: '22px', fontWeight: 'bold' }}>R$ {totalVendidoGeral.toFixed(2)}</div>
+                  </div>
+                  <div style={{ background: '#cff4fc', color: '#055160', padding: '15px', borderRadius: '8px', border: '1px solid #b6effb' }}>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '13px', fontWeight: '500' }}>Total de Pedidos</p>
+                    <div style={{ fontSize: '22px', fontWeight: 'bold' }}>{pedidos.length}</div>
+                  </div>
+                  <div style={{ background: '#f8d7da', color: '#842029', padding: '15px', borderRadius: '8px', border: '1px solid #f5c2c7' }}>
+                    <p style={{ margin: '0 0 5px 0', fontSize: '13px', fontWeight: '500' }}>Ticket Médio</p>
+                    <div style={{ fontSize: '22px', fontWeight: 'bold' }}>
+                      R$ {pedidos.length > 0 ? (totalVendidoGeral / pedidos.length).toFixed(2) : '0.00'}
+                    </div>
+                  </div>
+                </div>
+
+                <h3 style={{ fontSize: '16px', color: '#333', marginBottom: '10px' }}>📅 Faturamento Diário</h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid #e9ecef', color: '#666', fontSize: '13px' }}>
+                        <th style={{ padding: '10px' }}>Data</th>
+                        <th style={{ padding: '10px' }}>Qtd. Pedidos</th>
+                        <th style={{ padding: '10px' }}>Valor Arrecadado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(
+                        pedidos.reduce((acc, p) => {
+                          const data = p.created_at ? p.created_at.slice(0, 10).split('-').reverse().join('/') : 'Hoje';
+                          if (!acc[data]) acc[data] = { qtd: 0, total: 0 };
+                          acc[data].qtd += 1;
+                          acc[data].total += Number(p.valor || 0);
+                          return acc;
+                        }, {})
+                      ).map(([data, info], index) => (
+                        <tr key={index} style={{ borderBottom: '1px solid #f1f3f5', fontSize: '14px' }}>
+                          <td style={{ padding: '10px', fontWeight: '500' }}>{data}</td>
+                          <td style={{ padding: '10px', color: '#666' }}>{info.qtd} pedido(s)</td>
+                          <td style={{ padding: '10px', fontWeight: 'bold', color: '#198754' }}>R$ {info.total.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                      {pedidos.length === 0 && (
+                        <tr>
+                          <td colSpan="3" style={{ padding: '20px', textAlign: 'center', color: '#888', fontStyle: 'italic' }}>Nenhum pedido registrado ainda.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}
@@ -423,7 +492,7 @@ export default function App() {
                 </select>
 
                 <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>Forma de Pagamento:</label>
-                <select value={pagamentoWeb} onChange={(e) => setPagamentoWeb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
+                <select value={pagamentoWeb} onChange={(e) => pagamentoWeb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
                   <option value="Pix">Pix</option>
                   <option value="Cartão de Crédito/Débito">Cartão de Crédito/Débito</option>
                   <option value="Dinheiro">Dinheiro</option>
