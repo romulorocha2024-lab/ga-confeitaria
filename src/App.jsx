@@ -68,7 +68,6 @@ export default function App() {
       });
 
       if (res.ok) {
-        // Atualiza o estado localmente para sumir da tela na mesma hora
         setPedidos(pedidos.map(p => p.id === idPedido ? { ...p, status: 'concluido' } : p));
       } else {
         alert('Erro ao concluir o pedido.');
@@ -255,8 +254,16 @@ export default function App() {
 
   const totalVendidoGeral = pedidos.reduce((acc, p) => acc + Number(p.valor || 0), 0);
 
-  // Filtra os pedidos da cozinha para exibir apenas os que NÃO estão concluídos
+  // Pedidos ativos (não concluídos) na cozinha
   const pedidosCozinhaAtivos = pedidos.filter(p => p.status !== 'concluido');
+
+  // Pedidos concluídos apenas do dia de hoje para o novo painel
+  const dataHojeString = new Date().toISOString().slice(0, 10);
+  const pedidosConcluidosHoje = pedidos.filter(p => {
+    if (p.status !== 'concluido') return false;
+    if (!p.created_at) return true; // Se por acaso não tiver data, assume o dia atual
+    return p.created_at.slice(0, 10) === dataHojeString;
+  });
 
   return (
     <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#fdf2f4', minHeight: '100vh', padding: '20px', color: '#333' }}>
@@ -349,8 +356,11 @@ export default function App() {
                   <h2 style={{ color: '#fd7e14', margin: 0 }}>🍳 Cozinha - Controle de Pedidos</h2>
                   <button type="button" onClick={carregarPedidos} style={{ background: '#e9ecef', border: 'none', padding: '6px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>🔄 Atualizar</button>
                 </div>
-                {pedidosCozinhaAtivos.length === 0 ? <p style={{ color: '#888' }}>Nenhum pedido pendente na cozinha no momento. 🎉</p> : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+
+                {/* Pedidos Pendentes */}
+                <h3 style={{ fontSize: '15px', color: '#555', borderBottom: '2px solid #eee', paddingBottom: '5px' }}>⏳ Pedidos Pendentes</h3>
+                {pedidosCozinhaAtivos.length === 0 ? <p style={{ color: '#888', fontStyle: 'italic' }}>Nenhum pedido pendente na cozinha no momento. 🎉</p> : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
                     {pedidosCozinhaAtivos.map(ped => (
                       <div key={ped.id} style={{ background: '#fff9db', border: '1px solid #ffe066', padding: '15px', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
@@ -369,6 +379,24 @@ export default function App() {
                         >
                           ✅ Concluir Pedido
                         </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Pedidos Concluídos / Enviados Hoje */}
+                <h3 style={{ fontSize: '15px', color: '#198754', borderBottom: '2px solid #d1e7dd', paddingBottom: '5px', marginTop: '30px' }}>📦 Pedidos Concluídos / Enviados Hoje</h3>
+                {pedidosConcluidosHoje.length === 0 ? <p style={{ color: '#888', fontStyle: 'italic' }}>Nenhum pedido concluído hoje ainda.</p> : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {pedidosConcluidosHoje.map(ped => (
+                      <div key={ped.id} style={{ background: '#f8f9fa', border: '1px solid #d1e7dd', padding: '12px', borderRadius: '8px', opacity: '0.85' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px' }}>
+                          <strong style={{ fontSize: '15px', color: '#0f5132' }}>{ped.cliente}</strong>
+                          <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', background: '#198754', color: 'white' }}>CONCLUÍDO</span>
+                        </div>
+                        <p style={{ margin: '2px 0', fontSize: '13px', color: '#555' }}><strong>Itens:</strong> {ped.itens}</p>
+                        <p style={{ margin: '2px 0', fontSize: '13px', color: '#555' }}><strong>Endereço:</strong> {ped.entrega}</p>
+                        <p style={{ margin: '2px 0', fontSize: '13px', color: '#555' }}><strong>Valor:</strong> R$ {Number(ped.valor || 0).toFixed(2)} ({ped.pagamento})</p>
                       </div>
                     ))}
                   </div>
