@@ -13,6 +13,14 @@ const headersSupabase = {
 };
 
 export default function App() {
+  // Inserção da fonte Recoleta via Google Fonts no Head dinamicamente
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.href = 'https://fonts.googleapis.com/css2?family=Recoleta:wght@400;600&display=swap';
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+  }, []);
+
   const urlParams = new URLSearchParams(window.location.search);
   const ehAdmin = urlParams.get('admin') === 'geicy';
 
@@ -301,8 +309,8 @@ export default function App() {
         
         {ehAdmin ? (
           <>
-            <header style={{ background: 'white', padding: '24px 20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', marginBottom: '20px' }}>
-              <h1 style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', color: '#d63384', fontSize: '38px', fontWeight: 'normal', margin: '0 0 10px 0', lineHeight: '1.2' }}>
+            <header style={{ background: 'white', padding: '30px 20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', marginBottom: '20px' }}>
+              <h1 style={{ fontFamily: '"Recoleta", serif', color: '#d63384', fontSize: '46px', fontWeight: 'normal', margin: '0 0 10px 0', lineHeight: '1.2' }}>
                 🍰 Geicy Aires Confeitaria
               </h1>
               <p style={{ margin: 0, color: '#666', fontWeight: '600', fontSize: '15px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
@@ -510,7 +518,7 @@ export default function App() {
           /* VISÃO DO CLIENTE */
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #e9ecef', paddingBottom: '15px' }}>
-              <h2 style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', color: '#d63384', fontSize: '36px', fontWeight: 'normal', margin: '0 0 5px 0' }}>
+              <h2 style={{ fontFamily: '"Recoleta", serif', color: '#d63384', fontSize: '42px', fontWeight: 'normal', margin: '0 0 5px 0', lineHeight: '1.2' }}>
                 🍰 Geicy Aires Confeitaria
               </h2>
               <p style={{ margin: 0, color: '#666', fontSize: '15px', fontWeight: '600' }}>Escolha suas guloseimas favoritas!</p>
