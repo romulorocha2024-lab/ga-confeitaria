@@ -47,7 +47,7 @@ export default function App() {
 
   const carregarPedidos = async () => {
     try {
-      const resposta = await fetch(`${SUPABASE_PEDIDOS_URL}?select=*&order=id.desc`, {
+      const resposta = await fetch(`${SUPABASE_PEDIDOS_URL}?select=*&order=created_at.desc`, {
         headers: headersSupabase
       });
       const data = await resposta.json();
@@ -59,9 +59,17 @@ export default function App() {
     }
   };
 
-  const concluirPedido = async (idPedido) => {
+  const concluirPedido = async (pedido) => {
+    const campoFiltro = pedido.id !== undefined && pedido.id !== null ? 'id' : 'created_at';
+    const valorFiltro = pedido.id !== undefined && pedido.id !== null ? pedido.id : pedido.created_at;
+
+    if (!valorFiltro) {
+      alert('Não foi possível identificar este pedido para conclusão.');
+      return;
+    }
+
     try {
-      const res = await fetch(`${SUPABASE_PEDIDOS_URL}?id=eq.${idPedido}`, {
+      const res = await fetch(`${SUPABASE_PEDIDOS_URL}?${campoFiltro}=eq.${encodeURIComponent(valorFiltro)}`, {
         method: 'PATCH',
         headers: headersSupabase,
         body: JSON.stringify({ status: 'concluido' })
@@ -70,10 +78,45 @@ export default function App() {
       if (res.ok) {
         await carregarPedidos();
       } else {
-        alert('Erro ao concluir o pedido.');
+        const erroTxt = await res.text();
+        console.error('Erro ao concluir:', erroTxt);
+        alert('Não foi possível concluir o pedido. Verifique o console.');
       }
     } catch (err) {
       console.error('Erro ao concluir pedido:', err);
+    }
+  };
+
+  // Função para limpar todos os pedidos do banco de dados
+  const limparTodosPedidos = async () => {
+    if (window.confirm('Tem certeza absoluta que deseja apagar TODOS os pedidos do histórico? Essa ação não pode ser desfeita!')) {
+      try {
+        // O operador "gt.0" ou "id.gte.0" força a exclusão de todos os registros da tabela ORDERS
+        const res = await fetch(`${SUPABASE_PEDIDOS_URL}?id=gte.0`, {
+          method: 'DELETE',
+          headers: headersSupabase
+        });
+
+        if (res.ok) {
+          setPedidos([]);
+          alert('Todos os pedidos foram apagados com sucesso!');
+        } else {
+          // Caso a tabela use id gerado de outra forma, tentamos limpar por created_at existente
+          const resFallback = await fetch(`${SUPABASE_PEDIDOS_URL}?created_at=not.is.null`, {
+            method: 'DELETE',
+            headers: headersSupabase
+          });
+          if (resFallback.ok) {
+            setPedidos([]);
+            alert('Todos os pedidos foram apagados com sucesso!');
+          } else {
+            alert('Erro ao apagar os pedidos. Verifique as permissões no Supabase.');
+          }
+        }
+      } catch (err) {
+        console.error('Erro ao limpar pedidos:', err);
+        alert('Erro de conexão ao tentar limpar os pedidos.');
+      }
     }
   };
 
@@ -253,8 +296,6 @@ export default function App() {
     : produtos.filter(p => p.categoria && p.categoria.toLowerCase().trim() === filtroCategoriaWeb.toLowerCase().trim());
 
   const totalVendidoGeral = pedidos.reduce((acc, p) => acc + Number(p.valor || 0), 0);
-  
-  // Exibe na cozinha tudo o que NÃO for concluído (incluindo status nulos ou antigos)
   const pedidosCozinhaAtivos = pedidos.filter(p => !p.status || p.status !== 'concluido');
 
   return (
@@ -350,8 +391,8 @@ export default function App() {
                 </div>
                 {pedidosCozinhaAtivos.length === 0 ? <p style={{ color: '#888' }}>Nenhum pedido pendente na cozinha no momento. 🎉</p> : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    {pedidosCozinhaAtivos.map(ped => (
-                      <div key={ped.id} style={{ background: '#fff9db', border: '1px solid #ffe066', padding: '15px', borderRadius: '8px' }}>
+                    {pedidosCozinhaAtivos.map((ped, index) => (
+                      <div key={ped.id || index} style={{ background: '#fff9db', border: '1px solid #ffe066', padding: '15px', borderRadius: '8px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                           <strong style={{ fontSize: '16px' }}>{ped.cliente}</strong>
                           <span style={{ fontSize: '12px', fontWeight: 'bold', padding: '3px 8px', borderRadius: '4px', background: ped.status === 'novos' ? '#ff922b' : '#51cf66', color: 'white' }}>{ped.status ? ped.status.toUpperCase() : 'NOVO'}</span>
@@ -363,7 +404,7 @@ export default function App() {
                         
                         <button 
                           type="button" 
-                          onClick={() => concluirPedido(ped.id)}
+                          onClick={() => concluirPedido(ped)}
                           style={{ marginTop: '12px', width: '100%', backgroundColor: '#198754', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '14px' }}
                         >
                           ✅ Concluir Pedido
@@ -380,24 +421,34 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
                   <h2 style={{ color: '#198754', margin: 0 }}>💰 Controle Financeiro</h2>
                   
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      const csvContent = "data:text/csv;charset=utf-8," 
-                        + ["ID,Cliente,Telefone,Itens,Valor,Pagamento,Data"].join(",") + "\n"
-                        + pedidos.map(p => `${p.id},"${p.cliente}","${p.telefone}","${p.itens}",${p.valor},"${p.pagamento}","${p.created_at || ''}"`).join("\n");
-                      const encodedUri = encodeURI(csvContent);
-                      const link = document.createElement("a");
-                      link.setAttribute("href", encodedUri);
-                      link.setAttribute("download", `backup_pedidos_${new Date().toISOString().slice(0,10)}.csv`);
-                      document.body.appendChild(link);
-                      link.click();
-                      document.body.removeChild(link);
-                    }}
-                    style={{ background: '#198754', color: 'white', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
-                  >
-                    📥 Baixar Backup de Pedidos (CSV)
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        const csvContent = "data:text/csv;charset=utf-8," 
+                          + ["ID,Cliente,Telefone,Itens,Valor,Pagamento,Data"].join(",") + "\n"
+                          + pedidos.map(p => `${p.id},"${p.cliente}","${p.telefone}","${p.itens}",${p.valor},"${p.pagamento}","${p.created_at || ''}"`).join("\n");
+                        const encodedUri = encodeURI(csvContent);
+                        const link = document.createElement("a");
+                        link.setAttribute("href", encodedUri);
+                        link.setAttribute("download", `backup_pedidos_${new Date().toISOString().slice(0,10)}.csv`);
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      style={{ background: '#198754', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      📥 Baixar Backup (CSV)
+                    </button>
+
+                    <button 
+                      type="button"
+                      onClick={limparTodosPedidos}
+                      style={{ background: '#dc3545', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}
+                    >
+                      🗑️ Limpar Pedidos
+                    </button>
+                  </div>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', marginBottom: '25px' }}>
