@@ -68,7 +68,6 @@ export default function App() {
       });
 
       if (res.ok) {
-        // Recarrega os pedidos direto do Supabase para atualizar a tela instantaneamente
         await carregarPedidos();
       } else {
         alert('Erro ao concluir o pedido.');
@@ -254,7 +253,9 @@ export default function App() {
     : produtos.filter(p => p.categoria && p.categoria.toLowerCase().trim() === filtroCategoriaWeb.toLowerCase().trim());
 
   const totalVendidoGeral = pedidos.reduce((acc, p) => acc + Number(p.valor || 0), 0);
-  const pedidosCozinhaAtivos = pedidos.filter(p => p.status !== 'concluido');
+  
+  // Exibe na cozinha tudo o que NÃO for concluído (incluindo status nulos ou antigos)
+  const pedidosCozinhaAtivos = pedidos.filter(p => !p.status || p.status !== 'concluido');
 
   return (
     <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#fdf2f4', minHeight: '100vh', padding: '20px', color: '#333' }}>
