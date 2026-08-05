@@ -88,7 +88,7 @@ export default function App() {
   };
 
   const limparTodosPedidos = async () => {
-    if (window.confirm('Tem certeza absoluta que deseja apagar TODOS the pedidos do histórico? Essa ação não pode ser desfeita!')) {
+    if (window.confirm('Tem certeza absoluta que deseja apagar TODOS os pedidos do histórico? Essa ação não pode ser desfeita!')) {
       try {
         const res = await fetch(`${SUPABASE_PEDIDOS_URL}?id=gte.0`, {
           method: 'DELETE',
@@ -301,11 +301,15 @@ export default function App() {
         
         {ehAdmin ? (
           <>
-            <header style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', marginBottom: '20px' }}>
-              <h1 style={{ color: '#d63384', fontSize: '24px', margin: '0 0 8px 0', lineHeight: '1.2' }}>🍰 Geicy Aires Confeitaria</h1>
-              <p style={{ margin: 0, color: '#666', fontWeight: '500', fontSize: '14px', lineHeight: '1.4' }}>Painel de Controle na Nuvem</p>
+            <header style={{ background: 'white', padding: '24px 20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', marginBottom: '20px' }}>
+              <h1 style={{ fontFamily: '"Brush Script MT", "Lucida Handwriting", "Pacifico", cursive, sans-serif', color: '#d63384', fontSize: '38px', margin: '0 0 10px 0', lineHeight: '1.2' }}>
+                🍰 Geicy Aires Confeitaria
+              </h1>
+              <p style={{ margin: 0, color: '#666', fontWeight: '600', fontSize: '15px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
+                Painel de Controle na Nuvem
+              </p>
               
-              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '15px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginTop: '18px', flexWrap: 'wrap' }}>
                 <button type="button" onClick={() => setTelaAtual('home')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'home' ? '#d63384' : '#e9ecef', color: telaAtual === 'home' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🏠 Início</button>
                 <button type="button" onClick={() => setTelaAtual('produtos')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'produtos' ? '#6f42c1' : '#e9ecef', color: telaAtual === 'produtos' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>📋 Produtos</button>
                 <button type="button" onClick={() => setTelaAtual('cozinha')} style={{ padding: '8px 12px', backgroundColor: telaAtual === 'cozinha' ? '#fd7e14' : '#e9ecef', color: telaAtual === 'cozinha' ? 'white' : '#333', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>🍳 Cozinha</button>
@@ -506,8 +510,10 @@ export default function App() {
           /* VISÃO DO CLIENTE */
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #e9ecef', paddingBottom: '15px' }}>
-              <h2 style={{ color: '#d63384', margin: '0 0 5px 0' }}>🍰 Geicy Aires Confeitaria</h2>
-              <p style={{ margin: 0, color: '#666', fontSize: '14px' }}>Escolha suas guloseimas favoritas!</p>
+              <h2 style={{ fontFamily: '"Brush Script MT", "Lucida Handwriting", "Pacifico", cursive, sans-serif', color: '#d63384', fontSize: '34px', margin: '0 0 5px 0' }}>
+                🍰 Geicy Aires Confeitaria
+              </h2>
+              <p style={{ margin: 0, color: '#666', fontSize: '14px', fontWeight: '500' }}>Escolha suas guloseimas favoritas!</p>
             </div>
 
             <h3 style={{ fontSize: '16px', color: '#333', marginBottom: '10px' }}>1️⃣ Escolha a Categoria:</h3>
