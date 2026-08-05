@@ -88,7 +88,7 @@ export default function App() {
   };
 
   const limparTodosPedidos = async () => {
-    if (window.confirm('Tem certeza absoluta que deseja apagar TODOS los pedidos do histórico? Essa ação não pode ser desfeita!')) {
+    if (window.confirm('Tem certeza absoluta que deseja apagar TODOS os pedidos do histórico? Essa ação não pode ser desfeita!')) {
       try {
         const res = await fetch(`${SUPABASE_PEDIDOS_URL}?id=gte.0`, {
           method: 'DELETE',
@@ -302,7 +302,7 @@ export default function App() {
         {ehAdmin ? (
           <>
             <header style={{ background: 'white', padding: '24px 20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', marginBottom: '20px' }}>
-              <h1 style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', color: '#d63384', fontSize: '38px', fontWeight: '800', margin: '0 0 10px 0', lineHeight: '1.2' }}>
+              <h1 style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', color: '#d63384', fontSize: '38px', fontWeight: 'normal', margin: '0 0 10px 0', lineHeight: '1.2' }}>
                 🍰 Geicy Aires Confeitaria
               </h1>
               <p style={{ margin: 0, color: '#666', fontWeight: '600', fontSize: '15px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
@@ -510,7 +510,7 @@ export default function App() {
           /* VISÃO DO CLIENTE */
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #e9ecef', paddingBottom: '15px' }}>
-              <h2 style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', color: '#d63384', fontSize: '36px', fontWeight: '800', margin: '0 0 5px 0' }}>
+              <h2 style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', color: '#d63384', fontSize: '36px', fontWeight: 'normal', margin: '0 0 5px 0' }}>
                 🍰 Geicy Aires Confeitaria
               </h2>
               <p style={{ margin: 0, color: '#666', fontSize: '15px', fontWeight: '600' }}>Escolha suas guloseimas favoritas!</p>
