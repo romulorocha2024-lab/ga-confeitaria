@@ -13,7 +13,6 @@ const headersSupabase = {
 };
 
 export default function App() {
-  // Inserção da fonte Recoleta via Google Fonts no Head dinamicamente
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Recoleta:wght@400;600&display=swap';
@@ -39,13 +38,20 @@ export default function App() {
       });
       const data = await resposta.json();
       if (Array.isArray(data)) {
-        const produtosFormatados = data.map((p, index) => ({
-          id: p.id || index + 1,
-          nome: p.name,
-          preco: Number(p.price),
-          categoria: p.category,
-          imagem: p.image || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80'
-        }));
+        const produtosFormatados = data.map((p, index) => {
+          const qtd = p.quantity !== undefined && p.quantity !== null 
+            ? Number(p.quantity) 
+            : (p.estoque !== undefined && p.estoque !== null ? Number(p.estoque) : 0);
+
+          return {
+            id: p.id || index + 1,
+            nome: p.name,
+            preco: Number(p.price),
+            categoria: p.category,
+            imagem: p.image || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80',
+            quantidade: qtd
+          };
+        });
         setProdutos(produtosFormatados);
       }
     } catch (err) {
@@ -129,6 +135,7 @@ export default function App() {
   const [editandoId, setEditandoId] = useState(null);
   const [nomeProduto, setNomeProduto] = useState('');
   const [precoProduto, setPrecoProduto] = useState('');
+  const [quantidadeProduto, setQuantidadeProduto] = useState('10');
   const [categoriaProduto, setCategoriaProduto] = useState('Doces');
   const [imagemProduto, setImagemProduto] = useState('');
 
@@ -170,11 +177,15 @@ export default function App() {
     }
 
     const novaImg = imagemProduto || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80';
+    const qtdNum = parseInt(quantidadeProduto, 10) || 0;
+
     const dadosProd = { 
       name: nomeProduto.trim(), 
       price: parseFloat(precoProduto), 
       category: categoriaProduto, 
-      image: novaImg 
+      image: novaImg,
+      quantity: qtdNum,
+      estoque: qtdNum
     };
 
     try {
@@ -201,6 +212,7 @@ export default function App() {
 
       setNomeProduto('');
       setPrecoProduto('');
+      setQuantidadeProduto('10');
       setCategoriaProduto('Doces');
       setImagemProduto('');
       carregarProdutos();
@@ -215,6 +227,7 @@ export default function App() {
     setEditandoId(prod.nome);
     setNomeProduto(prod.nome);
     setPrecoProduto(prod.preco);
+    setQuantidadeProduto(prod.quantidade !== undefined ? String(prod.quantidade) : '0');
     setCategoriaProduto(prod.categoria || 'Doces');
     setImagemProduto(prod.imagem);
   };
@@ -233,11 +246,20 @@ export default function App() {
     setEditandoId(null);
     setNomeProduto('');
     setPrecoProduto('');
+    setQuantidadeProduto('10');
     setCategoriaProduto('Doces');
     setImagemProduto('');
   };
 
-  const adicionarAoCarrinhoWeb = (produto) => setCarrinhoCliente([...carrinhoCliente, produto]);
+  const adicionarAoCarrinhoWeb = (produto) => {
+    const qtdNoCarrinho = carrinhoCliente.filter(item => item.nome === produto.nome).length;
+    if (qtdNoCarrinho >= produto.quantidade) {
+      alert(`Ops! Não há mais estoque suficiente de "${produto.nome}". Quantidade disponível: ${produto.quantidade}`);
+      return;
+    }
+    setCarrinhoCliente([...carrinhoCliente, produto]);
+  };
+
   const removerDoCarrinhoWeb = (index) => setCarrinhoCliente(carrinhoCliente.filter((_, i) => i !== index));
   const calcularSubtotalWeb = () => carrinhoCliente.reduce((total, item) => total + item.preco, 0);
   const calcularTaxa = () => taxasEntrega[bairroSelecionado] || 0;
@@ -275,7 +297,22 @@ export default function App() {
         headers: headersSupabase,
         body: JSON.stringify(novoPedidoData)
       });
-      carregarPedidos();
+
+      // Atualizar quantidade no estoque do Supabase para cada item comprado
+      for (const item of carrinhoCliente) {
+        const prodAtual = produtos.find(p => p.nome === item.nome);
+        if (prodAtual && prodAtual.quantidade > 0) {
+          const novaQtd = Math.max(0, prodAtual.quantidade - 1);
+          await fetch(`${SUPABASE_URL}?name=eq.${encodeURIComponent(item.nome)}`, {
+            method: 'PATCH',
+            headers: headersSupabase,
+            body: JSON.stringify({ quantity: novaQtd, estoque: novaQtd })
+          });
+        }
+      }
+
+      await carregarProdutos();
+      await carregarPedidos();
     } catch (err) {
       console.error('Erro ao salvar pedido no banco:', err);
     }
@@ -328,7 +365,7 @@ export default function App() {
             {telaAtual === 'home' && (
               <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
                 <h3 style={{ marginTop: 0, color: '#d63384' }}>📊 Bem-vinda, Geicy!</h3>
-                <p style={{ color: '#666' }}>Seu sistema está sincronizado com o banco de dados.</p>
+                <p style={{ color: '#666' }}>Seu sistema está sincronizado com o banco de dados e controle de estoque ativo.</p>
               </div>
             )}
 
@@ -344,6 +381,9 @@ export default function App() {
                     <input type="text" value={nomeProduto} onChange={(e) => setNomeProduto(e.target.value)} placeholder="Nome do Doce/Salgado" required style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
                     <input type="number" step="0.01" value={precoProduto} onChange={(e) => setPrecoProduto(e.target.value)} placeholder="Preço (R$)" required style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
                     
+                    <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555', marginBottom: '-5px' }}>📦 Quantidade em Estoque:</label>
+                    <input type="number" value={quantidadeProduto} onChange={(e) => setQuantidadeProduto(e.target.value)} placeholder="Quantidade em estoque" min="0" required style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
+
                     <select value={categoriaProduto} onChange={(e) => setCategoriaProduto(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
                       <option value="Doces">Doces</option>
                       <option value="Bolos">Bolos</option>
@@ -380,6 +420,9 @@ export default function App() {
                         <div>
                           <strong>{prod.nome}</strong> <span style={{ fontSize: '11px', background: '#e9ecef', padding: '2px 6px', borderRadius: '4px' }}>{prod.categoria}</span>
                           <div style={{ color: '#d63384', fontWeight: 'bold' }}>R$ {prod.preco.toFixed(2)}</div>
+                          <div style={{ fontSize: '12px', color: prod.quantidade > 0 ? '#198754' : '#dc3545', fontWeight: '600' }}>
+                            Estoque: {prod.quantidade} un. {prod.quantidade <= 0 && '(ESGOTADO)'}
+                          </div>
                         </div>
                       </div>
                       <div style={{ display: 'flex', gap: '5px' }}>
@@ -536,18 +579,48 @@ export default function App() {
               <p style={{ color: '#888', fontStyle: 'italic', marginBottom: '20px' }}>Nenhum produto cadastrado nesta categoria ainda.</p>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', marginBottom: '20px' }}>
-                {produtosFiltradosWeb.map((prod, index) => (
-                  <div key={index} style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                    <img src={prod.imagem} alt={prod.nome} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />
-                    <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
-                      <div>
-                        <strong style={{ fontSize: '14px' }}>{prod.nome}</strong>
-                        <div style={{ color: '#d63384', fontWeight: 'bold', fontSize: '14px', marginTop: '4px' }}>R$ {prod.preco.toFixed(2)}</div>
+                {produtosFiltradosWeb.map((prod, index) => {
+                  const esgotado = prod.quantidade <= 0;
+                  return (
+                    <div key={index} style={{ background: '#fff', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 2px 4px rgba(0,0,0,0.05)', opacity: esgotado ? 0.65 : 1 }}>
+                      <div style={{ position: 'relative' }}>
+                        <img src={prod.imagem} alt={prod.nome} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />
+                        {esgotado && (
+                          <span style={{ position: 'absolute', top: '8px', right: '8px', background: '#dc3545', color: 'white', fontSize: '10px', fontWeight: 'bold', padding: '3px 6px', borderRadius: '4px', textTransform: 'uppercase' }}>
+                            Esgotado
+                          </span>
+                        )}
                       </div>
-                      <button type="button" onClick={() => adicionarAoCarrinhoWeb(prod)} style={{ marginTop: '10px', background: '#d63384', color: 'white', border: 'none', padding: '6px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>+ Adicionar</button>
+                      <div style={{ padding: '10px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1 }}>
+                        <div>
+                          <strong style={{ fontSize: '14px' }}>{prod.nome}</strong>
+                          <div style={{ color: '#d63384', fontWeight: 'bold', fontSize: '14px', marginTop: '4px' }}>R$ {prod.preco.toFixed(2)}</div>
+                          <div style={{ fontSize: '11px', color: esgotado ? '#dc3545' : '#28a745', marginTop: '2px', fontWeight: 'bold' }}>
+                            {esgotado ? '❌ Sem estoque' : `📦 Restam: ${prod.quantidade}`}
+                          </div>
+                        </div>
+                        <button 
+                          type="button" 
+                          disabled={esgotado}
+                          onClick={() => adicionarAoCarrinhoWeb(prod)} 
+                          style={{ 
+                            marginTop: '10px', 
+                            background: esgotado ? '#6c757d' : '#d63384', 
+                            color: 'white', 
+                            border: 'none', 
+                            padding: '6px', 
+                            borderRadius: '4px', 
+                            fontWeight: 'bold', 
+                            cursor: esgotado ? 'not-allowed' : 'pointer', 
+                            fontSize: '12px' 
+                          }}
+                        >
+                          {esgotado ? 'Esgotado' : '+ Adicionar'}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
