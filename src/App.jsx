@@ -44,7 +44,7 @@ export default function App() {
             : (p.estoque !== undefined && p.estoque !== null ? Number(p.estoque) : 0);
 
           return {
-            id: p.id || index + 1,
+            id: p.id !== undefined ? p.id : index + 1,
             nome: p.name,
             preco: Number(p.price),
             categoria: p.category,
@@ -190,11 +190,20 @@ export default function App() {
 
     try {
       if (editandoId) {
-        await fetch(`${SUPABASE_URL}?name=eq.${encodeURIComponent(editandoId)}`, {
+        const prodExistente = produtos.find(p => p.nome === editandoId);
+        const queryFiltro = prodExistente && prodExistente.id ? `id=eq.${prodExistente.id}` : `name=eq.${encodeURIComponent(editandoId)}`;
+
+        const resPatch = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
           method: 'PATCH',
           headers: headersSupabase,
           body: JSON.stringify(dadosProd)
         });
+
+        if (!resPatch.ok) {
+          console.error('Erro ao atualizar produto no Supabase:', await resPatch.text());
+          alert('Erro ao atualizar produto no banco. Verifique as permissões de RLS no Supabase.');
+          return;
+        }
         setEditandoId(null);
       } else {
         const res = await fetch(SUPABASE_URL, {
@@ -205,7 +214,7 @@ export default function App() {
         if (!res.ok) {
           const erroText = await res.text();
           console.error('Erro do Supabase:', erroText);
-          alert('Erro ao salvar no banco. Verifique o console.');
+          alert('Erro ao salvar no banco. Verifique as permissões no Supabase.');
           return;
         }
       }
@@ -215,7 +224,7 @@ export default function App() {
       setQuantidadeProduto('10');
       setCategoriaProduto('Doces');
       setImagemProduto('');
-      carregarProdutos();
+      await carregarProdutos();
       alert('Produto salvo com sucesso!');
     } catch (err) {
       console.error('Erro na requisição:', err);
@@ -232,13 +241,14 @@ export default function App() {
     setImagemProduto(prod.imagem);
   };
 
-  const excluirProduto = async (nomeProd) => {
+  const excluirProduto = async (prod) => {
     if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      await fetch(`${SUPABASE_URL}?name=eq.${encodeURIComponent(nomeProd)}`, {
+      const queryFiltro = prod && prod.id ? `id=eq.${prod.id}` : `name=eq.${encodeURIComponent(prod.nome || prod)}`;
+      await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
         method: 'DELETE',
         headers: headersSupabase
       });
-      carregarProdutos();
+      await carregarProdutos();
     }
   };
 
@@ -298,23 +308,34 @@ export default function App() {
         body: JSON.stringify(novoPedidoData)
       });
 
-      // Atualizar quantidade no estoque do Supabase para cada item comprado
-      for (const item of carrinhoCliente) {
-        const prodAtual = produtos.find(p => p.nome === item.nome);
-        if (prodAtual && prodAtual.quantidade > 0) {
-          const novaQtd = Math.max(0, prodAtual.quantidade - 1);
-          await fetch(`${SUPABASE_URL}?name=eq.${encodeURIComponent(item.nome)}`, {
+      // Agrupar contagem de itens comprados no carrinho para decrementar estoque
+      const contagemItens = {};
+      carrinhoCliente.forEach(item => {
+        contagemItens[item.nome] = (contagemItens[item.nome] || 0) + 1;
+      });
+
+      for (const [nomeDoce, qtdComprada] of Object.entries(contagemItens)) {
+        const prodAtual = produtos.find(p => p.nome === nomeDoce);
+        if (prodAtual) {
+          const novaQtd = Math.max(0, prodAtual.quantidade - qtdComprada);
+          const queryFiltro = prodAtual.id ? `id=eq.${prodAtual.id}` : `name=eq.${encodeURIComponent(nomeDoce)}`;
+          
+          const resEstoque = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
             method: 'PATCH',
             headers: headersSupabase,
             body: JSON.stringify({ quantity: novaQtd, estoque: novaQtd })
           });
+
+          if (!resEstoque.ok) {
+            console.error('Erro ao atualizar estoque no Supabase:', await resEstoque.text());
+          }
         }
       }
 
       await carregarProdutos();
       await carregarPedidos();
     } catch (err) {
-      console.error('Erro ao salvar pedido no banco:', err);
+      console.error('Erro ao salvar pedido ou atualizar estoque no banco:', err);
     }
 
     const mensagem = `Olá, Geicy! Gostaria de fazer o seguinte pedido:\n\n` +
@@ -427,7 +448,7 @@ export default function App() {
                       </div>
                       <div style={{ display: 'flex', gap: '5px' }}>
                         <button type="button" onClick={() => iniciarEdicaoProduto(prod)} style={{ background: '#ffc107', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Editar</button>
-                        <button type="button" onClick={() => excluirProduto(prod.nome)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Excluir</button>
+                        <button type="button" onClick={() => excluirProduto(prod)} style={{ background: '#dc3545', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px' }}>Excluir</button>
                       </div>
                     </div>
                   ))}
