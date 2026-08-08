@@ -39,9 +39,9 @@ export default function App() {
       const data = await resposta.json();
       if (Array.isArray(data)) {
         const produtosFormatados = data.map((p, index) => {
-          const qtd = p.quantity !== undefined && p.quantity !== null 
-            ? Number(p.quantity) 
-            : (p.estoque !== undefined && p.estoque !== null ? Number(p.estoque) : 0);
+          const qtd = p.estoque !== undefined && p.estoque !== null 
+            ? Number(p.estoque) 
+            : (p.quantity !== undefined && p.quantity !== null ? Number(p.quantity) : 0);
 
           return {
             id: p.id !== undefined ? p.id : index + 1,
@@ -184,7 +184,6 @@ export default function App() {
       price: parseFloat(precoProduto), 
       category: categoriaProduto, 
       image: novaImg,
-      quantity: qtdNum,
       estoque: qtdNum
     };
 
@@ -201,7 +200,7 @@ export default function App() {
 
         if (!resPatch.ok) {
           console.error('Erro ao atualizar produto no Supabase:', await resPatch.text());
-          alert('Erro ao atualizar produto no banco. Verifique as permissões de RLS no Supabase.');
+          alert('Erro ao atualizar produto no banco. Verifique as permissões no Supabase.');
           return;
         }
         setEditandoId(null);
@@ -323,7 +322,7 @@ export default function App() {
           const resEstoque = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
             method: 'PATCH',
             headers: headersSupabase,
-            body: JSON.stringify({ quantity: novaQtd, estoque: novaQtd })
+            body: JSON.stringify({ estoque: novaQtd })
           });
 
           if (!resEstoque.ok) {
