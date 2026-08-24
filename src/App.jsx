@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-const SUPABASE_URL_BASE = import.meta.env.VITE_SUPABASE_URL || 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1';
+const SUPABASE_URL_BASE = import.meta.env.VITE_SUPABASE_URL 
+  ? `${import.meta.env.VITE_SUPABASE_URL}/rest/v1` 
+  : 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1';
 const SUPABASE_URL = `${SUPABASE_URL_BASE}/PRODUCTS`;
 const SUPABASE_PEDIDOS_URL = `${SUPABASE_URL_BASE}/ORDERS`;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
@@ -678,4 +680,7 @@ export default function App() {
                 {pagamentoWeb === 'Dinheiro' && (
                   <input type="text" value={trocoPara} onChange={(e) => setTrocoPara(e.target.value)} placeholder="Precisa de troco para quanto? (Ex: 50.00)" style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
                 )}
-                <textarea value={obsClienteWeb} onChange={(e) => setObsClienteWeb(e.target.value)} placeholder="Observações do pedido..." style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc',
+                <textarea value={obsClienteWeb} onChange={(e) => setObsClienteWeb(e.target.value)} placeholder="Observações do pedido..." style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', minHeight: '60px' }} />
+              </div>
+
+              <button
