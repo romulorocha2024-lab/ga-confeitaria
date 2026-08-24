@@ -161,7 +161,6 @@ export default function App() {
   const [obsClienteWeb, setObsClienteWeb] = useState('');
   const [filtroCategoriaWeb, setFiltroCategoriaWeb] = useState('Todos');
 
-  // Redimensiona e comprime a imagem para não estourar o limite da requisição do Supabase
   const lidarComArquivoImagem = (e) => {
     const arquivo = e.target.files[0];
     if (arquivo) {
@@ -192,7 +191,6 @@ export default function App() {
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
 
-          // Converte para formato JPEG leve
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           setImagemProduto(dataUrl);
         };
@@ -275,13 +273,28 @@ export default function App() {
   };
 
   const excluirProduto = async (prod) => {
-    if (window.confirm('Tem certeza que deseja excluir este produto?')) {
-      const queryFiltro = prod && prod.id ? `id=eq.${prod.id}` : `name=eq.${encodeURIComponent(prod.nome || prod)}`;
-      await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
+    if (!window.confirm('Tem certeza que deseja excluir este produto?')) return;
+
+    try {
+      const queryFiltro = prod.id !== undefined && prod.id !== null 
+        ? `id=eq.${prod.id}` 
+        : `name=eq.${encodeURIComponent(prod.nome)}`;
+
+      const res = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
         method: 'DELETE',
         headers: headersSupabase
       });
-      await carregarProdutos();
+
+      if (res.ok) {
+        await carregarProdutos();
+      } else {
+        const erroTxt = await res.text();
+        console.error('Erro ao excluir produto:', erroTxt);
+        alert('Não foi possível excluir o produto. Verifique as permissões (RLS) no Supabase.');
+      }
+    } catch (err) {
+      console.error('Erro de rede ao excluir produto:', err);
+      alert('Erro de conexão ao tentar excluir o produto.');
     }
   };
 
@@ -341,7 +354,6 @@ export default function App() {
         body: JSON.stringify(novoPedidoData)
       });
 
-      // Agrupar contagem de itens comprados no carrinho para decrementar estoque
       const contagemItens = {};
       carrinhoCliente.forEach(item => {
         contagemItens[item.nome] = (contagemItens[item.nome] || 0) + 1;
