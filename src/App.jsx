@@ -273,18 +273,18 @@ export default function App() {
   };
 
   const excluirProduto = async (prod) => {
-    if (!window.confirm('Tem certeza que deseja excluir este produto?')) return;
+    if (!window.confirm(`Tem certeza que deseja excluir "${prod.nome}"?`)) return;
 
     try {
-      const queryFiltro = prod && prod.id 
-        ? `id=eq.${prod.id}` 
+      const queryFiltro = prod && prod.id && typeof prod.id === 'number' && prod.id > 0
+        ? `id=eq.${prod.id}`
         : `name=eq.${encodeURIComponent(prod.nome)}`;
 
       const res = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
         method: 'DELETE',
         headers: {
           ...headersSupabase,
-          'Prefer': 'return=minimal'
+          'Prefer': 'return=representation'
         }
       });
 
@@ -293,8 +293,8 @@ export default function App() {
         alert('Produto excluído com sucesso!');
       } else {
         const erroTxt = await res.text();
-        console.error('Erro ao excluir produto:', erroTxt);
-        alert('Não foi possível excluir o produto. Verifique se o ID existe no banco.');
+        console.error('Erro retornado pelo Supabase:', erroTxt);
+        alert('Erro ao excluir no Supabase. Verifique a chave primária ou permissões.');
       }
     } catch (err) {
       console.error('Erro de rede ao excluir produto:', err);
