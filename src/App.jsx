@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-// ✅ URL BASE do Supabase (corrigido)
-const SUPABASE_URL_BASE = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1';
+const SUPABASE_URL_BASE = import.meta.env.VITE_SUPABASE_URL || 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1';
 const SUPABASE_URL = `${SUPABASE_URL_BASE}/PRODUCTS`;
 const SUPABASE_PEDIDOS_URL = `${SUPABASE_URL_BASE}/ORDERS`;
-
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
 
 const headersSupabase = {
   'apikey': SUPABASE_KEY,
@@ -17,7 +15,6 @@ const headersSupabase = {
 
 export default function App() {
 
-  // ✅ Fonte corrigida (Recoleta não existe no Google Fonts → usamos uma similar)
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap';
@@ -61,7 +58,6 @@ export default function App() {
       }
     } catch (err) {
       console.error('Erro ao carregar produtos:', err);
-      alert('Não foi possível carregar os produtos. Verifique a conexão com o Supabase.');
     }
   };
 
@@ -98,7 +94,7 @@ export default function App() {
       } else {
         const erroTxt = await res.text();
         console.error('Erro ao concluir:', erroTxt);
-        alert('Não foi possível concluir o pedido. Verifique o console.');
+        alert('Não foi possível concluir o pedido.');
       }
     } catch (err) {
       console.error('Erro ao concluir pedido:', err);
@@ -106,7 +102,7 @@ export default function App() {
   };
 
   const limparTodosPedidos = async () => {
-    if (window.confirm('Tem certeza absoluta que deseja apagar TODOS os pedidos do histórico? Essa ação não pode ser desfeita!')) {
+    if (window.confirm('Tem certeza que deseja apagar TODOS os pedidos? Essa ação não pode ser desfeita!')) {
       try {
         const res = await fetch(`${SUPABASE_PEDIDOS_URL}?id=gte.0`, {
           method: 'DELETE',
@@ -114,22 +110,11 @@ export default function App() {
         });
         if (res.ok) {
           setPedidos([]);
-          alert('Todos os pedidos foram apagados com sucesso!');
-        } else {
-          const resFallback = await fetch(`${SUPABASE_PEDIDOS_URL}?created_at=not.is.null`, {
-            method: 'DELETE',
-            headers: headersSupabase
-          });
-          if (resFallback.ok) {
-            setPedidos([]);
-            alert('Todos os pedidos foram apagados com sucesso!');
-          } else {
-            alert('Erro ao apagar os pedidos. Verifique as permissões no Supabase.');
-          }
+          alert('Todos os pedidos foram apagados!');
         }
       } catch (err) {
         console.error('Erro ao limpar pedidos:', err);
-        alert('Erro de conexão ao tentar limpar os pedidos.');
+        alert('Erro ao tentar limpar os pedidos.');
       }
     }
   };
@@ -220,8 +205,8 @@ export default function App() {
         });
         if (!resPatch.ok) {
           const erroText = await resPatch.text();
-          console.error('Erro ao atualizar produto no Supabase:', erroText);
-          alert(`Erro ao atualizar produto no banco: ${erroText}`);
+          console.error('Erro ao atualizar produto:', erroText);
+          alert('Erro ao atualizar produto.');
           return;
         }
         setEditandoId(null);
@@ -233,8 +218,8 @@ export default function App() {
         });
         if (!res.ok) {
           const erroText = await res.text();
-          console.error('Erro do Supabase:', erroText);
-          alert(`Erro ao salvar no banco: ${erroText}`);
+          console.error('Erro ao salvar produto:', erroText);
+          alert('Erro ao salvar produto.');
           return;
         }
       }
@@ -247,7 +232,7 @@ export default function App() {
       alert('Produto salvo com sucesso!');
     } catch (err) {
       console.error('Erro na requisição:', err);
-      alert(`Erro de conexão ao salvar produto: ${err.message}`);
+      alert('Erro de conexão ao salvar produto.');
     }
   };
 
@@ -283,7 +268,7 @@ export default function App() {
   const adicionarAoCarrinhoWeb = (produto) => {
     const qtdNoCarrinho = carrinhoCliente.filter(item => item.nome === produto.nome).length;
     if (qtdNoCarrinho >= produto.quantidade) {
-      alert(`Ops! Não há mais estoque suficiente de "${produto.nome}". Quantidade disponível: ${produto.quantidade}`);
+      alert(`Não há estoque suficiente de "${produto.nome}". Disponível: ${produto.quantidade}`);
       return;
     }
     setCarrinhoCliente([...carrinhoCliente, produto]);
@@ -336,21 +321,18 @@ export default function App() {
           const novaQtd = Math.max(0, prodAtual.quantidade - qtdComprada);
           const queryFiltro = prodAtual.id ? `id=eq.${prodAtual.id}` : `name=eq.${encodeURIComponent(nomeDoce)}`;
           
-          const resEstoque = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
+          await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
             method: 'PATCH',
             headers: headersSupabase,
             body: JSON.stringify({ estoque: novaQtd })
           });
-          if (!resEstoque.ok) {
-            console.error('Erro ao atualizar estoque no Supabase:', await resEstoque.text());
-          }
         }
       }
 
       await carregarProdutos();
       await carregarPedidos();
     } catch (err) {
-      console.error('Erro ao salvar pedido ou atualizar estoque no banco:', err);
+      console.error('Erro ao salvar pedido:', err);
     }
 
     const mensagem = `Olá, Geicy! Gostaria de fazer o seguinte pedido:\n\n` +
@@ -511,7 +493,7 @@ export default function App() {
                       onClick={() => {
                         const csvContent = "data:text/csv;charset=utf-8," 
                           + ["ID,Cliente,Telefone,Itens,Valor,Pagamento,Data"].join(",") + "\n"
-                          + pedidos.map(p => `${p.id},"${p.cliente}","${p.telefone}","${p.itens}",${p.valor},"${p.pagamento}","${p.created_at || ''}"`).join("\n");
+                          + pedidos.map(p => `${p.id || ''},"${p.cliente}","${p.telefone || ''}","${p.itens}","${p.valor || ''}","${p.pagamento || ''}","${p.created_at || ''}"`).join("\n");
                         const encodedUri = encodeURI(csvContent);
                         const link = document.createElement("a");
                         link.setAttribute("href", encodedUri);
@@ -687,4 +669,13 @@ export default function App() {
                   {Object.keys(taxasEntrega).map(bairro => <option key={bairro} value={bairro}>{bairro}</option>)}
                 </select>
 
-                <label style={{ fontSize: '13px', fontWeight: 'bold',
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>Forma de Pagamento:</label>
+                <select value={pagamentoWeb} onChange={(e) => setPagamentoWeb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
+                  <option value="Pix">Pix</option>
+                  <option value="Cartão de Crédito/Débito">Cartão de Crédito/Débito</option>
+                  <option value="Dinheiro">Dinheiro</option>
+                </select>
+                {pagamentoWeb === 'Dinheiro' && (
+                  <input type="text" value={trocoPara} onChange={(e) => setTrocoPara(e.target.value)} placeholder="Precisa de troco para quanto? (Ex: 50.00)" style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
+                )}
+                <textarea value={obsClienteWeb} onChange={(e) => setObsClienteWeb(e.target.value)} placeholder="Observações do pedido..." style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc',
