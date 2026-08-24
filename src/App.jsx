@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 
-const SUPABASE_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/PRODUCTS';
-const SUPABASE_PEDIDOS_URL = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1/ORDERS';
+// ✅ URL BASE do Supabase (corrigido)
+const SUPABASE_URL_BASE = 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1';
+const SUPABASE_URL = `${SUPABASE_URL_BASE}/PRODUCTS`;
+const SUPABASE_PEDIDOS_URL = `${SUPABASE_URL_BASE}/ORDERS`;
+
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
 
 const headersSupabase = {
@@ -13,9 +16,11 @@ const headersSupabase = {
 };
 
 export default function App() {
+
+  // ✅ Fonte corrigida (Recoleta não existe no Google Fonts → usamos uma similar)
   useEffect(() => {
     const link = document.createElement('link');
-    link.href = 'https://fonts.googleapis.com/css2?family=Recoleta:wght@400;600&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
   }, []);
@@ -36,13 +41,13 @@ export default function App() {
       const resposta = await fetch(`${SUPABASE_URL}?select=*`, {
         headers: headersSupabase
       });
+      if (!resposta.ok) throw new Error(`Erro ${resposta.status}`);
       const data = await resposta.json();
       if (Array.isArray(data)) {
         const produtosFormatados = data.map((p, index) => {
           const qtd = p.estoque !== undefined && p.estoque !== null 
             ? Number(p.estoque) 
             : (p.quantity !== undefined && p.quantity !== null ? Number(p.quantity) : 0);
-
           return {
             id: p.id !== undefined ? p.id : index + 1,
             nome: p.name,
@@ -56,6 +61,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Erro ao carregar produtos:', err);
+      alert('Não foi possível carregar os produtos. Verifique a conexão com o Supabase.');
     }
   };
 
@@ -64,6 +70,7 @@ export default function App() {
       const resposta = await fetch(`${SUPABASE_PEDIDOS_URL}?select=*&order=created_at.desc`, {
         headers: headersSupabase
       });
+      if (!resposta.ok) throw new Error(`Erro ${resposta.status}`);
       const data = await resposta.json();
       if (Array.isArray(data)) {
         setPedidos(data);
@@ -76,19 +83,16 @@ export default function App() {
   const concluirPedido = async (pedido) => {
     const campoFiltro = pedido.id !== undefined && pedido.id !== null ? 'id' : 'created_at';
     const valorFiltro = pedido.id !== undefined && pedido.id !== null ? pedido.id : pedido.created_at;
-
     if (!valorFiltro) {
       alert('Não foi possível identificar este pedido para conclusão.');
       return;
     }
-
     try {
       const res = await fetch(`${SUPABASE_PEDIDOS_URL}?${campoFiltro}=eq.${encodeURIComponent(valorFiltro)}`, {
         method: 'PATCH',
         headers: headersSupabase,
         body: JSON.stringify({ status: 'concluido' })
       });
-
       if (res.ok) {
         await carregarPedidos();
       } else {
@@ -108,7 +112,6 @@ export default function App() {
           method: 'DELETE',
           headers: headersSupabase
         });
-
         if (res.ok) {
           setPedidos([]);
           alert('Todos os pedidos foram apagados com sucesso!');
@@ -138,27 +141,23 @@ export default function App() {
   const [quantidadeProduto, setQuantidadeProduto] = useState('10');
   const [categoriaProduto, setCategoriaProduto] = useState('Doces');
   const [imagemProduto, setImagemProduto] = useState('');
-
   const [carrinhoCliente, setCarrinhoCliente] = useState([]);
   const [nomeClienteWeb, setNomeClienteWeb] = useState('');
   const [telClienteWeb, setTelClienteWeb] = useState('');
   const [endClienteWeb, setEndClienteWeb] = useState('');
   
   const [bairroSelecionado, setBairroSelecionado] = useState('Bairros Próximos (R$ 3,00)');
-
   const taxasEntrega = {
     'Bairros Próximos (R$ 3,00)': 3.00,
     'Outros Bairros (Campo Novo, Matriz e similares) (R$ 4,00)': 4.00,
     'Frei Serafim, Vila Zizi, Santa Eulália e Ibacazinho (R$ 5,00)': 5.00,
     'Retirada no Local (Grátis)': 0.00
   };
-
   const [pagamentoWeb, setPagamentoWeb] = useState('Pix');
   const [trocoPara, setTrocoPara] = useState('');
   const [obsClienteWeb, setObsClienteWeb] = useState('');
   const [filtroCategoriaWeb, setFiltroCategoriaWeb] = useState('Todos');
 
-  // Redimensiona e comprime a imagem para não estourar o limite da requisição do Supabase
   const lidarComArquivoImagem = (e) => {
     const arquivo = e.target.files[0];
     if (arquivo) {
@@ -171,7 +170,6 @@ export default function App() {
           const MAX_HEIGHT = 300;
           let width = img.width;
           let height = img.height;
-
           if (width > height) {
             if (width > MAX_WIDTH) {
               height *= MAX_WIDTH / width;
@@ -183,13 +181,10 @@ export default function App() {
               height = MAX_HEIGHT;
             }
           }
-
           canvas.width = width;
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx.drawImage(img, 0, 0, width, height);
-
-          // Converte para formato JPEG leve
           const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
           setImagemProduto(dataUrl);
         };
@@ -205,10 +200,8 @@ export default function App() {
       alert('Preencha o nome e o preço!');
       return;
     }
-
     const novaImg = imagemProduto || 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=300&auto=format&fit=crop&q=80';
     const qtdNum = parseInt(quantidadeProduto, 10) || 0;
-
     const dadosProd = { 
       name: nomeProduto.trim(), 
       price: parseFloat(precoProduto), 
@@ -216,18 +209,15 @@ export default function App() {
       image: novaImg,
       estoque: qtdNum
     };
-
     try {
       if (editandoId) {
         const prodExistente = produtos.find(p => p.nome === editandoId);
         const queryFiltro = prodExistente && prodExistente.id ? `id=eq.${prodExistente.id}` : `name=eq.${encodeURIComponent(editandoId)}`;
-
         const resPatch = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
           method: 'PATCH',
           headers: headersSupabase,
           body: JSON.stringify(dadosProd)
         });
-
         if (!resPatch.ok) {
           const erroText = await resPatch.text();
           console.error('Erro ao atualizar produto no Supabase:', erroText);
@@ -248,7 +238,6 @@ export default function App() {
           return;
         }
       }
-
       setNomeProduto('');
       setPrecoProduto('');
       setQuantidadeProduto('10');
@@ -311,12 +300,10 @@ export default function App() {
       alert('Preencha seu nome e escolha pelo menos um produto!');
       return;
     }
-
     const itensTexto = carrinhoCliente.map(i => `• ${i.nome} (R$ ${i.preco.toFixed(2)})`).join('\n');
     const subtotal = calcularSubtotalWeb().toFixed(2);
     const taxa = calcularTaxa().toFixed(2);
     const total = calcularTotalGeralWeb().toFixed(2);
-
     let infoPagamento = pagamentoWeb;
     if (pagamentoWeb === 'Dinheiro' && trocoPara) infoPagamento += ` (Troco para R$ ${trocoPara})`;
 
@@ -338,7 +325,6 @@ export default function App() {
         body: JSON.stringify(novoPedidoData)
       });
 
-      // Agrupar contagem de itens comprados no carrinho para decrementar estoque
       const contagemItens = {};
       carrinhoCliente.forEach(item => {
         contagemItens[item.nome] = (contagemItens[item.nome] || 0) + 1;
@@ -355,7 +341,6 @@ export default function App() {
             headers: headersSupabase,
             body: JSON.stringify({ estoque: novaQtd })
           });
-
           if (!resEstoque.ok) {
             console.error('Erro ao atualizar estoque no Supabase:', await resEstoque.text());
           }
@@ -380,7 +365,6 @@ export default function App() {
       `*Observações:* ${obsClienteWeb || 'Nenhuma'}`;
 
     const numeroWhatsApp = '5598988832656';
-
     window.open(`https://api.whatsapp.com/send?phone=${numeroWhatsApp}&text=${encodeURIComponent(mensagem)}`, '_blank');
   };
 
@@ -392,13 +376,13 @@ export default function App() {
   const pedidosCozinhaAtivos = pedidos.filter(p => !p.status || p.status !== 'concluido');
 
   return (
-    <div style={{ fontFamily: 'Segoe UI, Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#fdf2f4', minHeight: '100vh', padding: '20px', color: '#333' }}>
+    <div style={{ fontFamily: '"Playfair Display", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif', backgroundColor: '#fdf2f4', minHeight: '100vh', padding: '20px', color: '#333' }}>
       <div style={{ maxWidth: '750px', margin: '0 auto' }}>
         
         {ehAdmin ? (
           <>
             <header style={{ background: 'white', padding: '30px 20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', textAlign: 'center', marginBottom: '20px' }}>
-              <h1 style={{ fontFamily: '"Recoleta", serif', color: '#d63384', fontSize: '46px', fontWeight: 'normal', margin: '0 0 10px 0', lineHeight: '1.2' }}>
+              <h1 style={{ fontFamily: '"Playfair Display", serif', color: '#d63384', fontSize: '46px', fontWeight: '700', margin: '0 0 10px 0', lineHeight: '1.2' }}>
                 🍰 Geicy Aires Confeitaria
               </h1>
               <p style={{ margin: 0, color: '#666', fontWeight: '600', fontSize: '15px', letterSpacing: '0.5px', textTransform: 'uppercase' }}>
@@ -434,17 +418,14 @@ export default function App() {
                     
                     <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555', marginBottom: '-5px' }}>📦 Quantidade em Estoque:</label>
                     <input type="number" value={quantidadeProduto} onChange={(e) => setQuantidadeProduto(e.target.value)} placeholder="Quantidade em estoque" min="0" required style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }} />
-
                     <select value={categoriaProduto} onChange={(e) => setCategoriaProduto(e.target.value)} style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}>
                       <option value="Doces">Doces</option>
                       <option value="Bolos">Bolos</option>
                       <option value="Salgados">Salgados</option>
                       <option value="Bebidas">Bebidas</option>
                     </select>
-
                     <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555', marginTop: '4px' }}>📸 Foto do produto (Opcional):</label>
                     <input type="file" accept="image/*" onChange={lidarComArquivoImagem} style={{ padding: '6px', background: 'white', borderRadius: '4px', border: '1px solid #ccc', fontSize: '12px' }} />
-
                     {imagemProduto && (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '5px' }}>
                         <span style={{ fontSize: '12px', color: '#666' }}>Prévia:</span>
@@ -543,7 +524,6 @@ export default function App() {
                     >
                       📥 Baixar Backup (CSV)
                     </button>
-
                     <button 
                       type="button"
                       onClick={limparTodosPedidos}
@@ -609,10 +589,9 @@ export default function App() {
             )}
           </>
         ) : (
-          /* VISÃO DO CLIENTE */
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #e9ecef', paddingBottom: '15px' }}>
-              <h2 style={{ fontFamily: '"Recoleta", serif', color: '#d63384', fontSize: '42px', fontWeight: 'normal', margin: '0 0 5px 0', lineHeight: '1.2' }}>
+              <h2 style={{ fontFamily: '"Playfair Display", serif', color: '#d63384', fontSize: '42px', fontWeight: '700', margin: '0 0 5px 0', lineHeight: '1.2' }}>
                 🍰 Geicy Aires Confeitaria
               </h2>
               <p style={{ margin: 0, color: '#666', fontSize: '15px', fontWeight: '600' }}>Escolha suas guloseimas favoritas!</p>
@@ -708,28 +687,4 @@ export default function App() {
                   {Object.keys(taxasEntrega).map(bairro => <option key={bairro} value={bairro}>{bairro}</option>)}
                 </select>
 
-                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#555' }}>Forma de Pagamento:</label>
-                <select value={pagamentoWeb} onChange={(e) => setPagamentoWeb(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }}>
-                  <option value="Pix">Pix</option>
-                  <option value="Cartão de Crédito/Débito">Cartão de Crédito/Débito</option>
-                  <option value="Dinheiro">Dinheiro</option>
-                </select>
-
-                {pagamentoWeb === 'Dinheiro' && (
-                  <input type="text" value={trocoPara} onChange={(e) => setTrocoPara(e.target.value)} placeholder="Precisa de troco para quanto? (Ex: 50.00)" style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc' }} />
-                )}
-
-                <textarea value={obsClienteWeb} onChange={(e) => setObsClienteWeb(e.target.value)} placeholder="Observações do pedido..." style={{ padding: '10px', borderRadius: '6px', border: '1px solid #ccc', height: '60px' }}></textarea>
-              </div>
-
-              <button type="submit" style={{ width: '100%', backgroundColor: '#25D366', color: 'white', border: 'none', padding: '14px', fontSize: '16px', fontWeight: 'bold', borderRadius: '8px', cursor: 'pointer', boxShadow: '0 4px 6px rgba(37, 211, 102, 0.2)' }}>
-                📲 Enviar Pedido via WhatsApp
-              </button>
-            </form>
-          </div>
-        )}
-
-      </div>
-    </div>
-  );
-}
+                <label style={{ fontSize: '13px', fontWeight: 'bold',
