@@ -158,12 +158,42 @@ export default function App() {
   const [obsClienteWeb, setObsClienteWeb] = useState('');
   const [filtroCategoriaWeb, setFiltroCategoriaWeb] = useState('Todos');
 
+  // Redimensiona e comprime a imagem para não estourar o limite da requisição do Supabase
   const lidarComArquivoImagem = (e) => {
     const arquivo = e.target.files[0];
     if (arquivo) {
       const leitor = new FileReader();
       leitor.onload = (eventoLeitura) => {
-        setImagemProduto(eventoLeitura.target.result);
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 300;
+          const MAX_HEIGHT = 300;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Converte para formato JPEG leve
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+          setImagemProduto(dataUrl);
+        };
+        img.src = eventoLeitura.target.result;
       };
       leitor.readAsDataURL(arquivo);
     }
@@ -199,8 +229,9 @@ export default function App() {
         });
 
         if (!resPatch.ok) {
-          console.error('Erro ao atualizar produto no Supabase:', await resPatch.text());
-          alert('Erro ao atualizar produto no banco. Verifique as permissões no Supabase.');
+          const erroText = await resPatch.text();
+          console.error('Erro ao atualizar produto no Supabase:', erroText);
+          alert(`Erro ao atualizar produto no banco: ${erroText}`);
           return;
         }
         setEditandoId(null);
@@ -213,7 +244,7 @@ export default function App() {
         if (!res.ok) {
           const erroText = await res.text();
           console.error('Erro do Supabase:', erroText);
-          alert('Erro ao salvar no banco. Verifique as permissões no Supabase.');
+          alert(`Erro ao salvar no banco: ${erroText}`);
           return;
         }
       }
@@ -227,7 +258,7 @@ export default function App() {
       alert('Produto salvo com sucesso!');
     } catch (err) {
       console.error('Erro na requisição:', err);
-      alert('Erro de conexão ao salvar produto.');
+      alert(`Erro de conexão ao salvar produto: ${err.message}`);
     }
   };
 
