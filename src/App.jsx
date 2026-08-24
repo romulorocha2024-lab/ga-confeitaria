@@ -6,7 +6,7 @@ const SUPABASE_URL_BASE = import.meta.env.VITE_SUPABASE_URL
   : 'https://cnogvsqpmeowrdidweve.supabase.co/rest/v1';
 const SUPABASE_URL = `${SUPABASE_URL_BASE}/PRODUCTS`;
 const SUPABASE_PEDIDOS_URL = `${SUPABASE_URL_BASE}/ORDERS`;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI6MjEwMTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNub2d2c3FwbWVvd3JkaWR3ZXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU3NTA3NjQsImV4cCI62E0MTMyNjc2NH0.hh3Ot3M6_j274Wr-RcIO5FmR0_Lbg4WCrI611L6UWqk';
 
 const headersSupabase = {
   'apikey': SUPABASE_KEY,
@@ -276,21 +276,25 @@ export default function App() {
     if (!window.confirm('Tem certeza que deseja excluir este produto?')) return;
 
     try {
-      const queryFiltro = prod.id !== undefined && prod.id !== null 
+      const queryFiltro = prod && prod.id 
         ? `id=eq.${prod.id}` 
         : `name=eq.${encodeURIComponent(prod.nome)}`;
 
       const res = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
         method: 'DELETE',
-        headers: headersSupabase
+        headers: {
+          ...headersSupabase,
+          'Prefer': 'return=minimal'
+        }
       });
 
       if (res.ok) {
         await carregarProdutos();
+        alert('Produto excluído com sucesso!');
       } else {
         const erroTxt = await res.text();
         console.error('Erro ao excluir produto:', erroTxt);
-        alert('Não foi possível excluir o produto. Verifique as permissões (RLS) no Supabase.');
+        alert('Não foi possível excluir o produto. Verifique se o ID existe no banco.');
       }
     } catch (err) {
       console.error('Erro de rede ao excluir produto:', err);
