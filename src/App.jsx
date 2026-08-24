@@ -47,7 +47,7 @@ export default function App() {
             : (p.quantity !== undefined && p.quantity !== null ? Number(p.quantity) : 0);
 
           return {
-            id: p.id !== undefined ? p.id : index + 1,
+            id: index + 1,
             nome: p.name,
             preco: Number(p.price),
             categoria: p.category,
@@ -220,8 +220,7 @@ export default function App() {
 
     try {
       if (editandoId) {
-        const prodExistente = produtos.find(p => p.nome === editandoId);
-        const queryFiltro = prodExistente && prodExistente.id ? `id=eq.${prodExistente.id}` : `name=eq.${encodeURIComponent(editandoId)}`;
+        const queryFiltro = `name=eq.${encodeURIComponent(editandoId)}`;
 
         const resPatch = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
           method: 'PATCH',
@@ -276,16 +275,12 @@ export default function App() {
     if (!window.confirm(`Tem certeza que deseja excluir "${prod.nome}"?`)) return;
 
     try {
-      const queryFiltro = prod && prod.id && typeof prod.id === 'number' && prod.id > 0
-        ? `id=eq.${prod.id}`
-        : `name=eq.${encodeURIComponent(prod.nome)}`;
+      // Faz o filtro diretamente pelo campo name
+      const queryFiltro = `name=eq.${encodeURIComponent(prod.nome)}`;
 
       const res = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
         method: 'DELETE',
-        headers: {
-          ...headersSupabase,
-          'Prefer': 'return=representation'
-        }
+        headers: headersSupabase
       });
 
       if (res.ok) {
@@ -294,7 +289,7 @@ export default function App() {
       } else {
         const erroTxt = await res.text();
         console.error('Erro retornado pelo Supabase:', erroTxt);
-        alert('Erro ao excluir no Supabase. Verifique a chave primária ou permissões.');
+        alert('Erro ao excluir no Supabase. Verifique o console.');
       }
     } catch (err) {
       console.error('Erro de rede ao excluir produto:', err);
@@ -367,7 +362,7 @@ export default function App() {
         const prodAtual = produtos.find(p => p.nome === nomeDoce);
         if (prodAtual) {
           const novaQtd = Math.max(0, prodAtual.quantidade - qtdComprada);
-          const queryFiltro = prodAtual.id ? `id=eq.${prodAtual.id}` : `name=eq.${encodeURIComponent(nomeDoce)}`;
+          const queryFiltro = `name=eq.${encodeURIComponent(nomeDoce)}`;
           
           const resEstoque = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
             method: 'PATCH',
