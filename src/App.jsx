@@ -142,7 +142,6 @@ export default function App() {
   const [categoriaProduto, setCategoriaProduto] = useState('Doces');
   const [imagemProduto, setImagemProduto] = useState('');
 
-  // Carrinho estruturado: Array de { produto, qtd }
   const [carrinhoCliente, setCarrinhoCliente] = useState([]);
   const [nomeClienteWeb, setNomeClienteWeb] = useState('');
   const [telClienteWeb, setTelClienteWeb] = useState('');
@@ -289,7 +288,7 @@ export default function App() {
       } else {
         const erroTxt = await res.text();
         console.error('Erro retornado pelo Supabase:', erroTxt);
-        alert('Erro ao excluir no Supabase. Verifique o console.');
+        alert(`Erro ao excluir no Supabase: ${erroTxt}`);
       }
     } catch (err) {
       console.error('Erro de rede ao excluir produto:', err);
@@ -651,7 +650,6 @@ export default function App() {
             )}
           </>
         ) : (
-          /* VISÃO DO CLIENTE */
           <div style={{ background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' }}>
             <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #e9ecef', paddingBottom: '15px' }}>
               <h2 style={{ fontFamily: '"Recoleta", serif', color: '#d63384', fontSize: '42px', fontWeight: 'normal', margin: '0 0 5px 0', lineHeight: '1.2' }}>
