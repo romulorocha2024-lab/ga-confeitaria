@@ -142,6 +142,7 @@ export default function App() {
   const [categoriaProduto, setCategoriaProduto] = useState('Doces');
   const [imagemProduto, setImagemProduto] = useState('');
 
+  // Carrinho estruturado: Array de { produto, qtd }
   const [carrinhoCliente, setCarrinhoCliente] = useState([]);
   const [nomeClienteWeb, setNomeClienteWeb] = useState('');
   const [telClienteWeb, setTelClienteWeb] = useState('');
@@ -275,7 +276,6 @@ export default function App() {
     if (!window.confirm(`Tem certeza que deseja excluir "${prod.nome}"?`)) return;
 
     try {
-      // Faz o filtro diretamente pelo campo name
       const queryFiltro = `name=eq.${encodeURIComponent(prod.nome)}`;
 
       const res = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
@@ -307,16 +307,42 @@ export default function App() {
   };
 
   const adicionarAoCarrinhoWeb = (produto) => {
-    const qtdNoCarrinho = carrinhoCliente.filter(item => item.nome === produto.nome).length;
-    if (qtdNoCarrinho >= produto.quantidade) {
+    const itemExistente = carrinhoCliente.find(item => item.produto.nome === produto.nome);
+    const qtdAtual = itemExistente ? itemExistente.qtd : 0;
+
+    if (qtdAtual + 1 > produto.quantidade) {
       alert(`Ops! Não há mais estoque suficiente de "${produto.nome}". Quantidade disponível: ${produto.quantidade}`);
       return;
     }
-    setCarrinhoCliente([...carrinhoCliente, produto]);
+
+    if (itemExistente) {
+      setCarrinhoCliente(carrinhoCliente.map(item =>
+        item.produto.nome === produto.nome ? { ...item, qtd: item.qtd + 1 } : item
+      ));
+    } else {
+      setCarrinhoCliente([...carrinhoCliente, { produto, qtd: 1 }]);
+    }
   };
 
-  const removerDoCarrinhoWeb = (index) => setCarrinhoCliente(carrinhoCliente.filter((_, i) => i !== index));
-  const calcularSubtotalWeb = () => carrinhoCliente.reduce((total, item) => total + item.preco, 0);
+  const alterarQtdCarrinho = (nomeProduto, delta) => {
+    setCarrinhoCliente(carrinhoCliente.map(item => {
+      if (item.produto.nome === nomeProduto) {
+        const novaQtd = item.qtd + delta;
+        if (novaQtd > item.produto.quantidade) {
+          alert(`Ops! Não há estoque suficiente. Quantidade disponível: ${item.produto.quantidade}`);
+          return item;
+        }
+        return novaQtd > 0 ? { ...item, qtd: novaQtd } : null;
+      }
+      return item;
+    }).filter(Boolean));
+  };
+
+  const removerDoCarrinhoWeb = (nomeProduto) => {
+    setCarrinhoCliente(carrinhoCliente.filter(item => item.produto.nome !== nomeProduto));
+  };
+
+  const calcularSubtotalWeb = () => carrinhoCliente.reduce((total, item) => total + (item.produto.preco * item.qtd), 0);
   const calcularTaxa = () => taxasEntrega[bairroSelecionado] || 0;
   const calcularTotalGeralWeb = () => calcularSubtotalWeb() + calcularTaxa();
 
@@ -327,7 +353,14 @@ export default function App() {
       return;
     }
 
-    const itensTexto = carrinhoCliente.map(i => `• ${i.nome} (R$ ${i.preco.toFixed(2)})`).join('\n');
+    const itensTexto = carrinhoCliente
+      .map(item => `• ${item.qtd}x ${item.produto.nome} (R$ ${(item.produto.preco * item.qtd).toFixed(2)})`)
+      .join('\n');
+    
+    const itensResumidos = carrinhoCliente
+      .map(item => `${item.qtd}x ${item.produto.nome}`)
+      .join(', ');
+
     const subtotal = calcularSubtotalWeb().toFixed(2);
     const taxa = calcularTaxa().toFixed(2);
     const total = calcularTotalGeralWeb().toFixed(2);
@@ -338,7 +371,7 @@ export default function App() {
     const novoPedidoData = {
       cliente: nomeClienteWeb,
       telefone: telClienteWeb,
-      itens: carrinhoCliente.map(i => i.nome).join(', '),
+      itens: itensResumidos,
       status: 'novos',
       entrega: endClienteWeb + ` (${bairroSelecionado})`,
       valor: parseFloat(total),
@@ -353,16 +386,11 @@ export default function App() {
         body: JSON.stringify(novoPedidoData)
       });
 
-      const contagemItens = {};
-      carrinhoCliente.forEach(item => {
-        contagemItens[item.nome] = (contagemItens[item.nome] || 0) + 1;
-      });
-
-      for (const [nomeDoce, qtdComprada] of Object.entries(contagemItens)) {
-        const prodAtual = produtos.find(p => p.nome === nomeDoce);
+      for (const item of carrinhoCliente) {
+        const prodAtual = produtos.find(p => p.nome === item.produto.nome);
         if (prodAtual) {
-          const novaQtd = Math.max(0, prodAtual.quantidade - qtdComprada);
-          const queryFiltro = `name=eq.${encodeURIComponent(nomeDoce)}`;
+          const novaQtd = Math.max(0, prodAtual.quantidade - item.qtd);
+          const queryFiltro = `name=eq.${encodeURIComponent(item.produto.nome)}`;
           
           const resEstoque = await fetch(`${SUPABASE_URL}?${queryFiltro}`, {
             method: 'PATCH',
@@ -598,7 +626,7 @@ export default function App() {
                     <tbody>
                       {Object.entries(
                         pedidos.reduce((acc, p) => {
-                          const data = p.created_at ? p.created_at.slice(0, 10).split('-').reverse().join('/') : 'Hoje';
+                          const data = p.created_at ? new Date(p.created_at).toLocaleDateString('pt-BR') : 'Hoje';
                           if (!acc[data]) acc[data] = { qtd: 0, total: 0 };
                           acc[data].qtd += 1;
                           acc[data].total += Number(p.valor || 0);
@@ -695,9 +723,14 @@ export default function App() {
                 {carrinhoCliente.length === 0 ? <p style={{ color: '#856404', margin: 0, fontSize: '13px' }}>Nenhum produto escolhido ainda.</p> : (
                   <div>
                     {carrinhoCliente.map((item, index) => (
-                      <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px', fontSize: '14px' }}>
-                        <span>{item.nome} (R$ {item.preco.toFixed(2)})</span>
-                        <button type="button" onClick={() => removerDoCarrinhoWeb(index)} style={{ background: '#dc3540', color: 'white', border: 'none', padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>X</button>
+                      <div key={index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', fontSize: '14px' }}>
+                        <span>{item.produto.nome} (R$ {item.produto.preco.toFixed(2)} un)</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <button type="button" onClick={() => alterarQtdCarrinho(item.produto.nome, -1)} style={{ background: '#ccc', border: 'none', padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>-</button>
+                          <span><strong>{item.qtd}</strong></span>
+                          <button type="button" onClick={() => alterarQtdCarrinho(item.produto.nome, 1)} style={{ background: '#ccc', border: 'none', padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>+</button>
+                          <button type="button" onClick={() => removerDoCarrinhoWeb(item.produto.nome)} style={{ background: '#dc3540', color: 'white', border: 'none', padding: '2px 6px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', marginLeft: '4px' }}>X</button>
+                        </div>
                       </div>
                     ))}
                     <div style={{ borderTop: '1px solid #ffeeba', marginTop: '8px', paddingTop: '8px', fontSize: '14px' }}>
